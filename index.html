@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtual Shelf</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1520; }
+    canvas { display: block; }
+    #app { width: 100%; height: 100%; }
+    #hint {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      color: rgba(255,255,255,0.5); font-family: monospace; font-size: 13px;
+      pointer-events: none; text-align: center; transition: opacity 0.3s;
+    }
+    #play-btn {
+      position: fixed; top: 20px; right: 20px; display: none;
+      width: 44px; height: 44px; border-radius: 8px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      cursor: pointer; align-items: center; justify-content: center;
+      backdrop-filter: blur(6px); transition: background 0.2s;
+    }
+    #play-btn:hover { background: rgba(255,255,255,0.2); }
+    #play-btn svg { width: 20px; height: 20px; fill: rgba(255,255,255,0.8); }
+    #dvd-actions {
+      position: fixed; top: 20px; left: 20px; display: none;
+      flex-direction: column; gap: 10px; z-index: 10;
+    }
+    #dvd-actions button {
+      width: 44px; height: 44px; border-radius: 8px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(6px); transition: background 0.2s;
+      color: rgba(255,255,255,0.7); font-size: 20px;
+    }
+    #dvd-actions button:hover { background: rgba(255,255,255,0.2); }
+    #nav {
+      position: fixed; top: 50%; right: 12px; transform: translateY(-50%);
+      display: flex; flex-direction: column; gap: 10px;
+      pointer-events: none; z-index: 10;
+    }
+    #nav button {
+      width: 48px; height: 48px; border-radius: 10px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15);
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s; color: rgba(255,255,255,0.7); font-size: 22px;
+      pointer-events: auto;
+    }
+    #nav button:hover { background: rgba(255,255,255,0.16); color: #fff; }
+    #nav button:active { background: rgba(255,255,255,0.22); }
+
+    @media (max-width: 768px) {
+      html { touch-action: manipulation; }
+
+      #app {
+        height: calc(100% - 52px);
+      }
+
+      #bottom-bar {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: calc(52px + env(safe-area-inset-bottom, 0px));
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        background: rgba(26, 21, 32, 0.95);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        align-items: center;
+        z-index: 100;
+      }
+
+      #hint {
+        top: 10px; bottom: auto;
+        font-size: 11px;
+        max-width: 92vw;
+      }
+
+      #nav {
+        position: static;
+        transform: none;
+        flex-direction: row;
+        gap: 8px;
+        margin: 0 auto;
+        pointer-events: auto;
+      }
+      #nav button {
+        width: 40px; height: 40px; border-radius: 10px;
+        font-size: 18px;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: none;
+      }
+
+      #dvd-actions {
+        position: static;
+        flex-direction: row;
+        gap: 6px;
+      }
+      #dvd-actions button {
+        width: 40px; height: 40px; border-radius: 10px;
+        font-size: 16px;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: none;
+      }
+
+      #play-btn {
+        position: static;
+        width: 40px; height: 40px; border-radius: 10px;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: none;
+      }
+      #play-btn svg { width: 18px; height: 18px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="bottom-bar">
+    <div id="dvd-actions">
+      <button id="reset-dvd" title="Reset orientation">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="1,4 1,10 7,10"/>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36"/>
+        </svg>
+      </button>
+      <button id="flip-dvd" title="Flip to back cover">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3"/>
+          <path d="M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3"/>
+          <polyline points="15,9 10,5 5,9"/>
+          <polyline points="9,15 14,19 19,15"/>
+        </svg>
+      </button>
+      <button id="return-dvd" title="Return to shelf">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+        </svg>
+      </button>
+    </div>
+    <nav id="nav">
+      <button id="nav-up" title="Next">&#9650;</button>
+      <button id="nav-down" title="Previous">&#9660;</button>
+    </nav>
+    <a id="play-btn" target="_blank" title="Watch on Jellyfin">
+      <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+    </a>
+  </div>
+  <div id="hint">use nav buttons to browse  |  click dvd spine to examine</div>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+      }
+    }
+  </script>
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

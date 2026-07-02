@@ -1,0 +1,15 @@
+{
+  "name": "virtual-shelf",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "3D virtual library for Jellyfin, Steam, OPDS server",
+  "scripts": {
+    "start": "node server.js",
+    "lint": "npx eslint ."
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "serve": "^14.2.0"
+  }
+}
