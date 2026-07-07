@@ -1,8 +1,11 @@
 import { JELLYFIN, JELLYFIN_WEB } from './config.js';
 
-export async function fetchItems() {
-  const url = `${JELLYFIN.server}/Users/${JELLYFIN.userId}/Items`
+export async function fetchItems(searchTerm) {
+  let url = `${JELLYFIN.server}/Users/${JELLYFIN.userId}/Items`
     + '?IncludeItemTypes=Movie,Series&Recursive=true&SortBy=SortName&Fields=Overview';
+  if (searchTerm) {
+    url += '&searchTerm=' + encodeURIComponent(searchTerm);
+  }
   const res = await fetch(url, {
     headers: { 'X-MediaBrowser-Token': JELLYFIN.apiKey },
   });

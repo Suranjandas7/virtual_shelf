@@ -113,6 +113,79 @@
       }
       #play-btn svg { width: 18px; height: 18px; }
     }
+
+    #homepage {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: fixed;
+      inset: 0;
+      background: #1a1520;
+      z-index: 200;
+      gap: 48px;
+    }
+    #homepage h1 {
+      color: rgba(255,255,255,0.85);
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-weight: 400;
+      font-size: 28px;
+      letter-spacing: 0.04em;
+    }
+    .source-grid {
+      display: flex;
+      gap: 24px;
+    }
+    .source-grid a {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      width: 160px;
+      padding: 32px 20px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.75);
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s, transform 0.2s;
+    }
+    .source-grid a:hover {
+      background: rgba(255,255,255,0.12);
+      border-color: rgba(255,255,255,0.25);
+      transform: translateY(-2px);
+    }
+    .source-grid a svg {
+      width: 40px;
+      height: 40px;
+    }
+    .source-grid a span {
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 18px;
+      font-weight: 500;
+    }
+    .source-grid a small {
+      color: rgba(255,255,255,0.35);
+      font-family: monospace;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    @media (max-width: 768px) {
+      #homepage h1 { font-size: 22px; }
+      .source-grid {
+        flex-direction: column;
+        gap: 16px;
+      }
+      .source-grid a {
+        width: 140px;
+        padding: 24px 16px;
+        gap: 8px;
+      }
+      .source-grid a svg { width: 32px; height: 32px; }
+      .source-grid a span { font-size: 16px; }
+    }
   </style>
 </head>
 <body>
@@ -140,14 +213,34 @@
       </button>
     </div>
     <nav id="nav">
-      <button id="nav-up" title="Next">&#9650;</button>
-      <button id="nav-down" title="Previous">&#9660;</button>
+      <button id="nav-up" title="Previous">&#9650;</button>
+      <button id="nav-down" title="Next">&#9660;</button>
     </nav>
-    <a id="play-btn" target="_blank" title="Watch on Jellyfin">
+    <a id="play-btn" target="_blank" title="Open">
       <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
     </a>
   </div>
-  <div id="hint">use nav buttons to browse  |  click dvd spine to examine</div>
+  <div id="homepage" style="display:none;">
+    <h1>Virtual Shelf</h1>
+    <div class="source-grid">
+      <a href="/jellyfin">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="18" rx="2" ry="2"/><polygon points="10,8 16,12 10,16"/></svg>
+        <span>Movies</span>
+        <small>Jellyfin</small>
+      </a>
+      <a href="/steam">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="12,6 15,9 18,7 18,11 15,10 12,13"/></svg>
+        <span>Games</span>
+        <small>Steam</small>
+      </a>
+      <a href="/opds">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        <span>Books</span>
+        <small>OPDS</small>
+      </a>
+    </div>
+  </div>
+  <div id="hint"></div>
   <script type="importmap">
     {
       "imports": {

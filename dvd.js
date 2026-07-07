@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { g } from './state.js';
 import { edgeCaseTex, createSpineTexture, createSynopsisTexture, createFallbackCover, loadCoverTexture, loadImage, createTextureFromImage, extractDominantColor } from './textures.js';
-import { DVD_H, DVD_D } from './constants.js';
+import { DVD_H, DVD_D, POOL_SHELVES } from './constants.js';
 
 const gradientMap = (() => {
   const c = document.createElement('canvas');
@@ -235,61 +235,121 @@ export function createPlaceholderDvd(sharedGeo) {
   return group;
 }
 
-export function populateShelves(container) {
+export function createPool(container) {
   const L = g.appLayout;
+  const totalItems = g.allItems.length;
+  const poolSize = Math.min(POOL_SHELVES * L.dvdsPerView, totalItems);
 
-  g.shelfData = [];
   g.allDvdMeshes = [];
-
-  const totalMovies = g.allItems.length;
-  if (totalMovies === 0) return;
-  const totalDvds = L.numViews * L.dvdsPerView;
-  const halfTotal = totalDvds / 2;
+  g.shelfData = [];
+  g.poolBaseItem = 0;
 
   const sharedGeo = new THREE.BoxGeometry(DVD_H, L.dvdT, DVD_D);
   _outlineGeo = new THREE.EdgesGeometry(sharedGeo);
+  g._sharedGeo = sharedGeo;
 
-  for (let i = 0; i < totalDvds; i++) {
-    const v = Math.floor(i / L.dvdsPerView);
-    const y = (i - halfTotal + 0.5) * L.spacing;
-    const idx = i % totalMovies;
+  const spacingPerView = L.dvdsPerView * L.spacing;
+  const totalH = g.numShelves * spacingPerView;
+  const topY = totalH / 2 - L.spacing / 2;
+
+  for (let slot = 0; slot < poolSize; slot++) {
+    const itemIndex = slot;
+    const shelfIndex = Math.floor(itemIndex / L.dvdsPerView);
+    const posInShelf = itemIndex % L.dvdsPerView;
+    const y = topY - shelfIndex * spacingPerView - posInShelf * L.spacing;
 
     const mesh = createPlaceholderDvd(sharedGeo);
-    mesh.userData.viewIndex = v;
-    mesh.userData.itemIndex = idx;
+    mesh.userData.viewIndex = shelfIndex;
+    mesh.userData.itemIndex = itemIndex;
     container.add(mesh);
-
     mesh.position.set(0, y, -L.containerD / 2 + L.dvdD / 2 + 0.04);
-
-    applyPlaceholderToDvd(mesh, idx);
+    applyPlaceholderToDvd(mesh, itemIndex);
 
     g.allDvdMeshes.push(mesh);
 
-    if (!g.shelfData[v]) g.shelfData[v] = { dvds: [] };
-    g.shelfData[v].dvds.push({ mesh });
+    if (!g.shelfData[shelfIndex]) g.shelfData[shelfIndex] = { dvds: [] };
+    g.shelfData[shelfIndex].dvds.push({ mesh });
   }
 
-  g.currentShelfIndex = L.numViews - 1;
-  const midOffset = L.dvdsPerView / 2;
-  g.cameraTargetY = (g.currentShelfIndex * L.dvdsPerView - halfTotal + midOffset) * L.spacing;
-  g.camera.position.y = g.cameraTargetY;
-  g.camera.lookAt(0, g.cameraTargetY, 0);
+  g.currentShelfIndex = 0;
+  g.cameraTargetY = topY;
+  g.camera.position.y = topY;
+  g.camera.lookAt(0, topY, 0);
 
-  const centerStart = g.currentShelfIndex * L.dvdsPerView;
-  const initCenterIdx = (centerStart + Math.floor(L.dvdsPerView / 2)) % totalMovies;
-  const halfWin = Math.floor(L.dvdsPerView * 3 / 2);
-  let initLoaded = 0;
-  const initMax = L.dvdsPerView * 2;
-  for (let i = -halfWin; i <= halfWin && initLoaded < initMax; i++) {
-    const idx = (initCenterIdx + i + totalMovies) % totalMovies;
-    if (!g.textureCache.has(idx) && !g.loadingSet.has(idx)) {
-      loadMovieAssets(idx);
-      initLoaded++;
+  for (let slot = 0; slot < poolSize; slot++) {
+    if (!g.textureCache.has(slot) && !g.loadingSet.has(slot)) {
+      loadMovieAssets(slot);
     }
   }
 }
 
-const TEXTURE_WINDOW = 3;
+export function repositionPool() {
+  const L = g.appLayout;
+  const totalItems = g.allItems.length;
+  const poolSize = g.allDvdMeshes.length;
+  if (poolSize === 0) return;
+
+  const currentPoolBaseShelf = Math.floor(g.poolBaseItem / L.dvdsPerView);
+  const poolEndShelf = currentPoolBaseShelf + POOL_SHELVES - 1;
+
+  let targetBaseShelf = currentPoolBaseShelf;
+
+  if (g.currentShelfIndex >= poolEndShelf) {
+    targetBaseShelf = Math.min(g.numShelves - POOL_SHELVES, currentPoolBaseShelf + 1);
+  } else if (g.currentShelfIndex < currentPoolBaseShelf + 1 && currentPoolBaseShelf > 0) {
+    targetBaseShelf = Math.max(0, currentPoolBaseShelf - 1);
+  }
+
+  const maxBase = Math.max(0, totalItems - poolSize);
+  const newBase = Math.min(targetBaseShelf * L.dvdsPerView, maxBase);
+
+  if (newBase === g.poolBaseItem) return;
+  g.poolBaseItem = newBase;
+
+  const spacingPerView = L.dvdsPerView * L.spacing;
+  const totalH = g.numShelves * spacingPerView;
+  const topY = totalH / 2 - L.spacing / 2;
+
+  g.shelfData = [];
+
+  for (let slot = 0; slot < poolSize; slot++) {
+    const itemIndex = newBase + slot;
+    const mesh = g.allDvdMeshes[slot];
+    const body = dvdBody(mesh);
+
+    if (itemIndex >= totalItems) {
+      mesh.visible = false;
+      continue;
+    }
+    mesh.visible = true;
+
+    for (const mi of [2, 3, 4]) {
+      if (body.material[mi].map) {
+        body.material[mi].map = null;
+        body.material[mi].needsUpdate = true;
+      }
+    }
+
+    const shelfIndex = Math.floor(itemIndex / L.dvdsPerView);
+    const posInShelf = itemIndex % L.dvdsPerView;
+    const y = topY - shelfIndex * spacingPerView - posInShelf * L.spacing;
+
+    mesh.userData.viewIndex = shelfIndex;
+    mesh.userData.itemIndex = itemIndex;
+    mesh.position.set(0, y, -L.containerD / 2 + L.dvdD / 2 + 0.04);
+
+    const cached = g.textureCache.get(itemIndex);
+    if (cached && cached !== g.FAILED) {
+      applyMovieToDvd(mesh, itemIndex);
+    } else {
+      applyPlaceholderToDvd(mesh, itemIndex);
+      if (!g.loadingSet.has(itemIndex)) loadMovieAssets(itemIndex);
+    }
+
+    if (!g.shelfData[shelfIndex]) g.shelfData[shelfIndex] = { dvds: [] };
+    g.shelfData[shelfIndex].dvds.push({ mesh });
+  }
+}
 
 function _releaseTex(tex) {
   if (!tex) return;
@@ -305,25 +365,20 @@ export function evictDistantTextures() {
   const L = g.appLayout;
   const totalItems = g.allItems.length;
   if (totalItems === 0) return;
-  const centerStart = g.currentShelfIndex * L.dvdsPerView;
-  const centerIdx = (centerStart + Math.floor(L.dvdsPerView / 2)) % totalItems;
 
-  if (g._lastTextureWindowCenter === centerIdx) return;
-  const prevCenter = g._lastTextureWindowCenter ?? centerIdx;
-  if (Math.abs(centerIdx - prevCenter) < L.dvdsPerView && g._lastTextureWindowCenter >= 0) return;
+  const poolEnd = g.poolBaseItem + g.allDvdMeshes.length;
+  const poolCenter = g.poolBaseItem + Math.floor(g.allDvdMeshes.length / 2);
 
-  const halfWindow = Math.floor(L.dvdsPerView * TEXTURE_WINDOW / 2);
+  if (g._lastTextureWindowCenter === poolCenter) return;
+
   const keepSet = new Set();
-  for (let i = -halfWindow; i <= halfWindow; i++) {
-    keepSet.add((centerIdx + i + totalItems) % totalItems);
+  for (let i = g.poolBaseItem; i < poolEnd && i < totalItems; i++) {
+    keepSet.add(i);
   }
 
   for (const [idx, cached] of g.textureCache) {
     if (keepSet.has(idx)) continue;
-    if (cached === g.FAILED) {
-      g.textureCache.delete(idx);
-      continue;
-    }
+    if (cached === g.FAILED) { g.textureCache.delete(idx); continue; }
     _releaseTex(cached.coverTex);
     _releaseTex(cached.spineTex);
     _releaseTex(cached.synopsisTex);
@@ -333,21 +388,15 @@ export function evictDistantTextures() {
   }
 
   for (const dvd of g.allDvdMeshes) {
-    if (!keepSet.has(dvd.userData.itemIndex)) {
-      _removeOutline(dvd);
-    }
+    if (!keepSet.has(dvd.userData.itemIndex)) _removeOutline(dvd);
   }
 
-  const maxLoads = L.dvdsPerView * 2;
   let loaded = 0;
+  const maxLoads = L.dvdsPerView * 2;
   for (const idx of keepSet) {
     if (loaded >= maxLoads) break;
-    if (!g.textureCache.has(idx) && !g.loadingSet.has(idx)) {
-      loadMovieAssets(idx);
-      loaded++;
-    }
+    if (!g.textureCache.has(idx) && !g.loadingSet.has(idx)) { loadMovieAssets(idx); loaded++; }
   }
 
-  g._lastTextureWindowCenter = centerIdx;
-  g._textureWindowSet = keepSet;
+  g._lastTextureWindowCenter = poolCenter;
 }

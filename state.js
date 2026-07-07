@@ -38,6 +38,8 @@ export const g = {
 
   cameraTargetY: 0,
   currentShelfIndex: 0,
+  numShelves: 0,
+  poolBaseItem: 0,
   clock: new THREE.Clock(),
 
   scratchVec: new THREE.Vector3(),

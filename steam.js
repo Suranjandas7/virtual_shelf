@@ -26,14 +26,20 @@ function batchMap(items, fn, concurrency) {
   return Promise.all(Array.from({ length: concurrency }, worker)).then(() => results);
 }
 
-export async function fetchItems() {
+export async function fetchItems(searchTerm) {
   const data = await proxyFetch(
     'https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/'
     + `?key=${STEAM.apiKey}&steamid=${STEAM.steamId}`
     + '&include_appinfo=true&include_played_free_games=true',
   );
 
-  const games = data.response?.games || [];
+  let games = data.response?.games || [];
+
+  if (searchTerm) {
+    const q = searchTerm.toLowerCase();
+    games = games.filter((g) => g.name.toLowerCase().includes(q));
+  }
+
   console.log(`[steam] ${games.length} owned apps, fetching details...`);
 
   const details = await batchMap(games, (g) => fetchAppDetails(g.appid), 8);

@@ -7,7 +7,7 @@
 Configure config.js
 
 ```
-npx run start .
+npm start
 ```
 
 ## Warning

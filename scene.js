@@ -2,9 +2,10 @@ import * as THREE from 'three';
 import { g } from './state.js';
 import { CONTAINER_W, CONTAINER_D } from './constants.js';
 
-export function buildScene() {
+export function buildScene(totalH) {
   const L = g.appLayout;
   const app = document.getElementById('app');
+  const th = totalH || 1.0;
 
   g.scene = new THREE.Scene();
   g.scene.background = new THREE.Color(0x1a1520);
@@ -53,8 +54,7 @@ export function buildScene() {
   const container = new THREE.Group();
   g.scene.add(container);
 
-  const totalH = L.totalH;
-  const sideGeo = new THREE.BoxGeometry(0.04, totalH, CONTAINER_D);
+  const sideGeo = new THREE.BoxGeometry(0.04, th, CONTAINER_D);
   for (const sx of [-CONTAINER_W / 2 + 0.02, CONTAINER_W / 2 - 0.02]) {
     const panel = new THREE.Mesh(sideGeo, boxMat);
     panel.position.set(sx, 0, 0);
@@ -63,17 +63,17 @@ export function buildScene() {
   }
 
   const topPanel = new THREE.Mesh(new THREE.BoxGeometry(CONTAINER_W, 0.04, CONTAINER_D), boxMat);
-  topPanel.position.set(0, totalH / 2 + 0.02, 0);
+  topPanel.position.set(0, th / 2 + 0.02, 0);
   topPanel.castShadow = true; topPanel.receiveShadow = true;
   container.add(topPanel);
 
   const bottomPanel = new THREE.Mesh(new THREE.BoxGeometry(CONTAINER_W, 0.04, CONTAINER_D), boxMat);
-  bottomPanel.position.set(0, -totalH / 2 - 0.02, 0);
+  bottomPanel.position.set(0, -th / 2 - 0.02, 0);
   bottomPanel.castShadow = true; bottomPanel.receiveShadow = true;
   container.add(bottomPanel);
 
   const backPanel = new THREE.Mesh(
-    new THREE.BoxGeometry(CONTAINER_W - 0.08, totalH, 0.02), backMat,
+    new THREE.BoxGeometry(CONTAINER_W - 0.08, th, 0.02), backMat,
   );
   backPanel.position.set(0, 0, -CONTAINER_D / 2 + 0.01);
   backPanel.receiveShadow = true;

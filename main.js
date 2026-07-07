@@ -1,25 +1,13 @@
 import { g } from './state.js';
 import { fetchItems } from './datasource.js';
 import { buildScene } from './scene.js';
-import { populateShelves, applyMovieToDvd, evictDistantTextures } from './dvd.js';
+import { createPool, applyMovieToDvd, evictDistantTextures } from './dvd.js';
 import { bindEvents, updateHover } from './interaction.js';
-import { HINT_EL, PLAY_BTN, DVD_ACTIONS, getLayout } from './constants.js';
+import { HINT_EL, PLAY_BTN, DVD_ACTIONS, getLayout, computeTotalH } from './constants.js';
 import * as THREE from 'three';
 
 function easeInOutCubic(t) {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-}
-
-let _lastVisShelf = -1;
-function updateDVDVisibility() {
-  const shelf = g.currentShelfIndex;
-  if (shelf === _lastVisShelf) return;
-  _lastVisShelf = shelf;
-  const range = g.appLayout.dvdsPerView * 3 * g.appLayout.spacing;
-  const camY = g.camera.position.y;
-  for (const mesh of g.allDvdMeshes) {
-    mesh.visible = Math.abs(mesh.position.y - camY) < range;
-  }
 }
 
 function animate() {
@@ -32,14 +20,13 @@ function animate() {
     g.camera.lookAt(0, g.camera.position.y, 0);
   }
 
-  updateDVDVisibility();
-
   evictDistantTextures();
 
   if (g.dirtyItemIndices.size > 0) {
     const dirty = new Set(g.dirtyItemIndices);
     g.dirtyItemIndices.clear();
     for (const shelf of g.shelfData) {
+      if (!shelf) continue;
       for (const dvd of shelf.dvds) {
         if (dvd.mesh === g.state.examinedDvd) continue;
         const idx = dvd.mesh.userData.itemIndex;
@@ -109,36 +96,65 @@ function finishReturn() {
   g.state.mode = 'browse';
 }
 
+function getRoute() {
+  const path = location.pathname.replace(/\/$/, '') || '/';
+  if (path === '/') return { source: 'home', search: null };
+  const parts = path.split('/').filter(Boolean);
+  const src = parts[0];
+  let source;
+  if (src === 'jellyfin') source = 'jellyfin';
+  else if (src === 'steam' || src === 'games') source = 'steam';
+  else if (src === 'opds' || src === 'books') source = 'opds';
+  else source = 'jellyfin';
+  const search = parts.length >= 2 ? decodeURIComponent(parts.slice(1).join('/')) : null;
+  return { source, search };
+}
+
+function showHomepage() {
+  document.getElementById('homepage').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('bottom-bar').style.display = 'none';
+  HINT_EL.style.display = 'none';
+}
+
 async function init() {
   g.appLayout = getLayout();
 
-  const isBooks = location.pathname.startsWith('/books');
-  const isGames = location.pathname.startsWith('/games');
-  HINT_EL.textContent = isBooks ? 'Loading books from OPDS...' : isGames ? 'Loading games from Steam...' : 'Loading movies from Jellyfin...';
+  const route = getRoute();
+
+  if (route.source === 'home') {
+    showHomepage();
+    return;
+  }
+
+  const sourceLabel = route.source === 'opds' ? 'OPDS' : route.source === 'steam' ? 'Steam' : 'Jellyfin';
+  HINT_EL.textContent = `Loading from ${sourceLabel}...`;
 
   let items;
   try {
-    items = await fetchItems();
+    items = await fetchItems(route.search);
   } catch (e) {
     console.error('Failed to fetch items:', e);
-    HINT_EL.textContent = isBooks ? 'Failed to load books. Is the OPDS server reachable?' : isGames ? 'Failed to load games. Is Steam reachable?' : 'Failed to load movies. Is Jellyfin reachable?';
+    HINT_EL.textContent = `Failed to load. Is ${sourceLabel} reachable?`;
     return;
   }
 
   if (items.length === 0) {
-    HINT_EL.textContent = isBooks ? 'No books found in OPDS library.' : isGames ? 'No games found in Steam library.' : 'No movies found in Jellyfin library.';
+    HINT_EL.textContent = route.search
+      ? `No results found for "${route.search}".`
+      : `No items found in ${sourceLabel} library.`;
     return;
   }
 
-  if (isBooks) {
-    const totalDvds = g.appLayout.numViews * g.appLayout.dvdsPerView;
-    const n = items.length;
-    const transformed = new Array(n);
-    for (let i = 0; i < n; i++) {
-      transformed[i] = items[(totalDvds - 1 - i) % n];
-    }
-    items = transformed;
-  } else {
+  if (route.source === 'opds') {
+    items.sort((a, b) => {
+      const da = a._date || '';
+      const db = b._date || '';
+      if (da > db) return -1;
+      if (da < db) return 1;
+      return 0;
+    });
+  } else if (route.source === 'jellyfin') {
     for (let i = items.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [items[i], items[j]] = [items[j], items[i]];
@@ -146,10 +162,13 @@ async function init() {
   }
 
   g.allItems = items;
+  g.numShelves = Math.max(1, Math.ceil(items.length / g.appLayout.dvdsPerView));
+
+  const totalH = computeTotalH(g.numShelves, g.appLayout.dvdsPerView * g.appLayout.spacing);
 
   HINT_EL.textContent = 'Building container...';
-  const container = buildScene();
-  populateShelves(container);
+  const container = buildScene(totalH);
+  createPool(container);
   HINT_EL.textContent = '';
   bindEvents();
   animate();

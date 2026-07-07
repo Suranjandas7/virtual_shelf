@@ -1,6 +1,15 @@
 import * as THREE from 'three';
 import { g } from './state.js';
 import { HINT_EL, PLAY_BTN, RESET_BTN, FLIP_BTN, RETURN_BTN, DVD_ACTIONS } from './constants.js';
+import { repositionPool } from './dvd.js';
+
+function updateCameraTarget() {
+  const L = g.appLayout;
+  const spacingPerView = L.dvdsPerView * L.spacing;
+  const totalH = g.numShelves * spacingPerView;
+  const topY = totalH / 2 - L.spacing / 2;
+  g.cameraTargetY = topY - g.currentShelfIndex * spacingPerView;
+}
 
 let hoverSkipCounter = 0;
 export function updateHover() {
@@ -9,16 +18,7 @@ export function updateHover() {
   hoverSkipCounter++;
   if (hoverSkipCounter % 5 !== 0) return;
   g.raycaster.setFromCamera(g.mouse, g.camera);
-  const L = g.appLayout;
-  const range = L.dvdsPerView * 2 * L.spacing;
-  const camY = g.camera.position.y;
-  const nearby = [];
-  for (const mesh of g.allDvdMeshes) {
-    if (mesh.visible && Math.abs(mesh.position.y - camY) < range) {
-      nearby.push(mesh);
-    }
-  }
-  const hits = nearby.length > 0 ? g.raycaster.intersectObjects(nearby, true) : [];
+  const hits = g.allDvdMeshes.length > 0 ? g.raycaster.intersectObjects(g.allDvdMeshes, true) : [];
   g.hoveredDvd = null;
   if (hits.length > 0) {
     let obj = hits[0].object;
@@ -165,17 +165,8 @@ export function bindEvents() {
     g.mouse.x = (e.clientX / appEl.clientWidth) * 2 - 1;
     g.mouse.y = -(e.clientY / appEl.clientHeight) * 2 + 1;
 
-    const L = g.appLayout;
-    const range = L.dvdsPerView * 2 * L.spacing;
-    const camY = g.camera.position.y;
     g.raycaster.setFromCamera(g.mouse, g.camera);
-    const nearby = [];
-    for (const mesh of g.allDvdMeshes) {
-      if (mesh.visible && Math.abs(mesh.position.y - camY) < range) {
-        nearby.push(mesh);
-      }
-    }
-    const hits = nearby.length > 0 ? g.raycaster.intersectObjects(nearby, true) : [];
+    const hits = g.allDvdMeshes.length > 0 ? g.raycaster.intersectObjects(g.allDvdMeshes, true) : [];
     let dvd = null;
     if (hits.length > 0) {
       let obj = hits[0].object;
@@ -195,16 +186,17 @@ export function bindEvents() {
 
   document.getElementById('nav-up').addEventListener('click', () => {
     if (g.state.mode !== 'browse') return;
-    const L = g.appLayout;
-    if (g.currentShelfIndex >= L.numViews - 1) return;
-    g.currentShelfIndex = (g.currentShelfIndex + 1) % L.numViews;
-    g.cameraTargetY = (g.currentShelfIndex * L.dvdsPerView - L.numViews * L.dvdsPerView / 2 + L.dvdsPerView / 2) * L.spacing;
+    if (g.currentShelfIndex <= 0) return;
+    g.currentShelfIndex--;
+    updateCameraTarget();
+    repositionPool();
   });
   document.getElementById('nav-down').addEventListener('click', () => {
     if (g.state.mode !== 'browse') return;
-    const L = g.appLayout;
-    g.currentShelfIndex = (g.currentShelfIndex - 1 + L.numViews) % L.numViews;
-    g.cameraTargetY = (g.currentShelfIndex * L.dvdsPerView - L.numViews * L.dvdsPerView / 2 + L.dvdsPerView / 2) * L.spacing;
+    if (g.currentShelfIndex >= g.numShelves - 1) return;
+    g.currentShelfIndex++;
+    updateCameraTarget();
+    repositionPool();
   });
 
   RETURN_BTN.addEventListener('click', () => {

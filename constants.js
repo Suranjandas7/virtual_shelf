@@ -4,9 +4,10 @@ export const DVD_H = 0.72;
 export const DVD_T = 0.03;
 export const DVD_D = 0.52;
 
+export const POOL_SHELVES = 3;
+
 const DESKTOP = {
   dvdsPerView: 18,
-  numViews: 35,
   spacing: 0.04,
   dvdT: 0.03,
   cameraZ: 1.3,
@@ -25,7 +26,6 @@ const DESKTOP = {
 
 const MOBILE = {
   dvdsPerView: 9,
-  numViews: 16,
   spacing: 0.066,
   dvdT: 0.06,
   cameraZ: 5.0,
@@ -53,7 +53,6 @@ export function getLayout() {
     dvdT: cfg.dvdT,
     dvdD: DVD_D,
     dvdsPerView: cfg.dvdsPerView,
-    numViews: cfg.numViews,
     spacing: cfg.spacing,
     cameraZ: cfg.cameraZ,
     cameraFov: cfg.cameraFov,
@@ -67,8 +66,11 @@ export function getLayout() {
     fallbackCoverH: cfg.fallbackCoverH,
     synopsisTexW: cfg.synopsisTexW,
     synopsisTexH: cfg.synopsisTexH,
-    totalH: cfg.numViews * cfg.dvdsPerView * cfg.spacing + 0.1,
   };
+}
+
+export function computeTotalH(numShelves, spacingPerView) {
+  return numShelves * spacingPerView;
 }
 
 export const HINT_EL = document.getElementById('hint');

@@ -20,7 +20,7 @@ function buildHeaders() {
 
 function feedUrlFromPath() {
   const path = location.pathname.replace(/\/$/, '');
-  const m = path.match(/^\/books\/(.+)/);
+  const m = path.match(/^\/opds\/(.+)/) || path.match(/^\/books\/(.+)/);
   if (!m) return OPDS.feedUrl;
 
   const tag = decodeURIComponent(m[1]);
