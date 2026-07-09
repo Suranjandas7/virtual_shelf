@@ -1,13 +1,35 @@
 import * as THREE from 'three';
+import { getCachedBlob, cacheBlob } from './imageCache.js';
 
-export function loadImage(url) {
+function loadImg(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error('Failed to load image'));
-    img.src = url;
+    img.src = src;
   });
+}
+
+export async function loadImage(url) {
+  try {
+    const blob = await getCachedBlob(url);
+    if (blob) {
+      const objUrl = URL.createObjectURL(blob);
+      try { return await loadImg(objUrl); } finally { URL.revokeObjectURL(objUrl); }
+    }
+  } catch { /* IndexedDB unavailable, fall through to network */ }
+
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    cacheBlob(url, blob).catch(() => {});
+    const objUrl = URL.createObjectURL(blob);
+    try { return await loadImg(objUrl); } finally { URL.revokeObjectURL(objUrl); }
+  } catch {
+    return loadImg(url);
+  }
 }
 
 export function createTextureFromImage(img, { fitW = 0, fitH = 0 } = {}) {
