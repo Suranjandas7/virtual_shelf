@@ -327,7 +327,7 @@ export function loadCoverTexture(url, maxSize = 512, fitW = 0, fitH = 0) {
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
-    tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
     tex.generateMipmaps = true;
     tex.anisotropy = 8;

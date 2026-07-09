@@ -30,7 +30,7 @@ const MOBILE = {
   dvdT: 0.06,
   cameraZ: 5.0,
   cameraFov: 16,
-  maxPixelRatio: 1.0,
+  maxPixelRatio: 2.0,
   shadowMapSize: 256,
   popOutDistance: 3.5,
   popOutScale: 0.95,
