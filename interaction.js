@@ -12,12 +12,23 @@ function updateCameraTarget() {
 }
 
 function getViewportSize() {
-  const vv = window.visualViewport;
   const appEl = document.getElementById('app');
-  if (vv) {
-    return { width: vv.width, height: vv.height, appW: appEl.clientWidth, appH: appEl.clientHeight };
+  return { width: appEl.clientWidth, height: appEl.clientHeight };
+}
+
+function _trySelect(x, y) {
+  if (g.state.mode !== 'browse') return;
+  const vs = getViewportSize();
+  g.mouse.x = (x / vs.width) * 2 - 1;
+  g.mouse.y = -(y / vs.height) * 2 + 1;
+
+  g.raycaster.setFromCamera(g.mouse, g.camera);
+  const hits = g._raycastTargets.length > 0 ? g.raycaster.intersectObjects(g._raycastTargets, false) : [];
+  if (hits.length > 0) {
+    let obj = hits[0].object;
+    while (obj && !obj.userData?.isDvd) obj = obj.parent;
+    if (obj && obj !== g.state.examinedDvd) examineDvd(obj);
   }
-  return { width: appEl.clientWidth, height: appEl.clientHeight, appW: appEl.clientWidth, appH: appEl.clientHeight };
 }
 
 function handleViewportResize() {
@@ -197,19 +208,7 @@ export function bindEvents() {
     if (e.target.closest('#bottom-bar')) return;
     if (g.state.mode === 'popping' || g.state.mode === 'returning') return;
     if (g.state.mode === 'examining') return;
-    const vs = getViewportSize();
-    g.mouse.x = (e.clientX / vs.width) * 2 - 1;
-    g.mouse.y = -(e.clientY / vs.height) * 2 + 1;
-
-    g.raycaster.setFromCamera(g.mouse, g.camera);
-    const hits = g._raycastTargets.length > 0 ? g.raycaster.intersectObjects(g._raycastTargets, false) : [];
-    let dvd = null;
-    if (hits.length > 0) {
-      let obj = hits[0].object;
-      while (obj && !obj.userData?.isDvd) obj = obj.parent;
-      if (obj && obj !== g.state.examinedDvd) dvd = obj;
-    }
-    if (dvd && g.state.mode === 'browse') examineDvd(dvd);
+    _trySelect(e.clientX, e.clientY);
   });
 
   window.addEventListener('wheel', (e) => {
@@ -276,5 +275,11 @@ export function bindEvents() {
       g.state.prevMouse.set(e.touches[0].clientX, e.touches[0].clientY);
     }
   }, { passive: false });
-  window.addEventListener('touchend', () => { g.state.isDragging = false; });
+  window.addEventListener('touchend', (e) => {
+    g.state.isDragging = false;
+    if (e.target.closest('#bottom-bar')) return;
+    if (g.state.mode !== 'browse') return;
+    const touch = e.changedTouches[0];
+    _trySelect(touch.clientX, touch.clientY);
+  });
 }
