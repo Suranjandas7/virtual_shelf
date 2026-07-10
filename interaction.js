@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { g } from './state.js';
-import { HINT_EL, PLAY_BTN, RESET_BTN, FLIP_BTN, RETURN_BTN, DVD_ACTIONS } from './constants.js';
+import { HINT_EL, PLAY_BTN, RESET_BTN, FLIP_BTN, RETURN_BTN, DVD_ACTIONS, getLayout } from './constants.js';
 import { repositionPool } from './dvd.js';
 
 function updateCameraTarget() {
@@ -9,6 +9,39 @@ function updateCameraTarget() {
   const totalH = g.numShelves * spacingPerView;
   const topY = totalH / 2 - L.spacing / 2;
   g.cameraTargetY = topY - g.currentShelfIndex * spacingPerView;
+}
+
+function getViewportSize() {
+  const vv = window.visualViewport;
+  const appEl = document.getElementById('app');
+  if (vv) {
+    return { width: vv.width, height: vv.height, appW: appEl.clientWidth, appH: appEl.clientHeight };
+  }
+  return { width: appEl.clientWidth, height: appEl.clientHeight, appW: appEl.clientWidth, appH: appEl.clientHeight };
+}
+
+function handleViewportResize() {
+  const appEl = document.getElementById('app');
+  const L = getLayout();
+  const layoutChanged = !g.appLayout || L.isMobile !== g.appLayout.isMobile;
+
+  g.appLayout = L;
+
+  g.camera.fov = L.cameraFov;
+  g.camera.aspect = appEl.clientWidth / appEl.clientHeight;
+  g.camera.position.z = L.cameraZ;
+  g.camera.updateProjectionMatrix();
+
+  g.renderer.setSize(appEl.clientWidth, appEl.clientHeight);
+  g.renderer.setPixelRatio(Math.min(window.devicePixelRatio, L.maxPixelRatio));
+
+  if (layoutChanged && g.allItems.length > 0) {
+    g.numShelves = Math.max(1, Math.ceil(g.allItems.length / L.dvdsPerView));
+    updateCameraTarget();
+    repositionPool();
+  }
+
+  g._needsRender = true;
 }
 
 let hoverSkipCounter = 0;
@@ -136,8 +169,9 @@ export function bindEvents() {
 
   window.addEventListener('mousemove', (e) => {
     if (!e.target.closest('#bottom-bar')) {
-      g.mouse.x = (e.clientX / appEl.clientWidth) * 2 - 1;
-      g.mouse.y = -(e.clientY / appEl.clientHeight) * 2 + 1;
+      const vs = getViewportSize();
+      g.mouse.x = (e.clientX / vs.width) * 2 - 1;
+      g.mouse.y = -(e.clientY / vs.height) * 2 + 1;
     }
     if (g.state.mode === 'examining' && g.state.isDragging) {
       const dx = e.clientX - g.state.prevMouse.x;
@@ -163,8 +197,9 @@ export function bindEvents() {
     if (e.target.closest('#bottom-bar')) return;
     if (g.state.mode === 'popping' || g.state.mode === 'returning') return;
     if (g.state.mode === 'examining') return;
-    g.mouse.x = (e.clientX / appEl.clientWidth) * 2 - 1;
-    g.mouse.y = -(e.clientY / appEl.clientHeight) * 2 + 1;
+    const vs = getViewportSize();
+    g.mouse.x = (e.clientX / vs.width) * 2 - 1;
+    g.mouse.y = -(e.clientY / vs.height) * 2 + 1;
 
     g.raycaster.setFromCamera(g.mouse, g.camera);
     const hits = g._raycastTargets.length > 0 ? g.raycaster.intersectObjects(g._raycastTargets, false) : [];
@@ -212,13 +247,11 @@ export function bindEvents() {
     if (g.state.mode === 'examining') flipDvd();
   });
 
-  window.addEventListener('resize', () => {
-    g.camera.aspect = appEl.clientWidth / appEl.clientHeight;
-    g.camera.updateProjectionMatrix();
-    g.renderer.setSize(appEl.clientWidth, appEl.clientHeight);
-    g.renderer.setPixelRatio(Math.min(window.devicePixelRatio, g.appLayout.maxPixelRatio));
-    g._needsRender = true;
-  });
+  window.addEventListener('resize', handleViewportResize);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', handleViewportResize);
+    window.visualViewport.addEventListener('scroll', handleViewportResize);
+  }
 
   window.addEventListener('touchmove', (e) => {
     if (g.state.mode === 'examining' && g.state.isDragging && e.touches.length === 1) {
@@ -234,8 +267,9 @@ export function bindEvents() {
 
   window.addEventListener('touchstart', (e) => {
     if (e.target.closest('#bottom-bar')) return;
-    g.mouse.x = (e.touches[0].clientX / appEl.clientWidth) * 2 - 1;
-    g.mouse.y = -(e.touches[0].clientY / appEl.clientHeight) * 2 + 1;
+    const vs = getViewportSize();
+    g.mouse.x = (e.touches[0].clientX / vs.width) * 2 - 1;
+    g.mouse.y = -(e.touches[0].clientY / vs.height) * 2 + 1;
     if (g.state.mode === 'examining' && e.touches.length === 1) {
       e.preventDefault();
       g.state.isDragging = true;
