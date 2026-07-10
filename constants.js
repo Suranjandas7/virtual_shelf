@@ -34,12 +34,12 @@ const MOBILE = {
   shadowMapSize: 256,
   popOutDistance: 3.5,
   popOutScale: 0.95,
-  coverTexW: 2160,
-  coverTexH: 1560,
-  fallbackCoverW: 800,
-  fallbackCoverH: 578,
-  synopsisTexW: 2160,
-  synopsisTexH: 1560,
+  coverTexW: 1080,
+  coverTexH: 780,
+  fallbackCoverW: 360,
+  fallbackCoverH: 260,
+  synopsisTexW: 1080,
+  synopsisTexH: 780,
 };
 
 export function getLayout() {

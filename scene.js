@@ -19,7 +19,7 @@ export function buildScene(totalH) {
   g.renderer.setSize(app.clientWidth, app.clientHeight);
   g.renderer.setPixelRatio(Math.min(window.devicePixelRatio, L.maxPixelRatio));
   g.renderer.shadowMap.enabled = true;
-  g.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  g.renderer.shadowMap.type = THREE.PCFShadowMap;
   g.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   g.renderer.toneMappingExposure = 1.1;
   document.getElementById('app').appendChild(g.renderer.domElement);
@@ -31,11 +31,11 @@ export function buildScene(totalH) {
   key.shadow.mapSize.width = L.shadowMapSize;
   key.shadow.mapSize.height = L.shadowMapSize;
   key.shadow.camera.near = 0.5;
-  key.shadow.camera.far = 25;
-  key.shadow.camera.left = -7;
-  key.shadow.camera.right = 7;
-  key.shadow.camera.top = 12;
-  key.shadow.camera.bottom = -16;
+  key.shadow.camera.far = 12;
+  key.shadow.camera.left = -2;
+  key.shadow.camera.right = 2;
+  key.shadow.camera.top = 6;
+  key.shadow.camera.bottom = -6;
   key.shadow.bias = -0.0002;
   g.scene.add(key);
   const fillLight = new THREE.DirectionalLight(0x8899cc, 2.8);
@@ -44,9 +44,6 @@ export function buildScene(totalH) {
   const warmLight = new THREE.PointLight(0xcc9966, 3, 8);
   warmLight.position.set(0, 1.5, 3);
   g.scene.add(warmLight);
-  const bottomLight = new THREE.PointLight(0x665544, 2, 6);
-  bottomLight.position.set(0, -0.2, 4);
-  g.scene.add(bottomLight);
 
   const boxMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.45, metalness: 0.05 });
   const backMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0 });

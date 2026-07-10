@@ -304,12 +304,22 @@ export function extractDominantColor(image) {
   });
 }
 
+let _sharedCanvas;
+let _sharedCtx;
+
+function _getSharedCtx(w, h) {
+  if (!_sharedCanvas) {
+    _sharedCanvas = document.createElement('canvas');
+    _sharedCtx = _sharedCanvas.getContext('2d');
+  }
+  _sharedCanvas.width = w;
+  _sharedCanvas.height = h;
+  return _sharedCtx;
+}
+
 function extractColorFromImg(img) {
-  const canvas = document.createElement('canvas');
-  const size = 40;
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const size = 8;
+  const ctx = _getSharedCtx(size, size);
   ctx.drawImage(img, 0, 0, size, size);
   const data = ctx.getImageData(0, 0, size, size).data;
 

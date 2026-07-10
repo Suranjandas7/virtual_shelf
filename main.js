@@ -1,7 +1,7 @@
 import { g } from './state.js';
 import { fetchItems } from './datasource.js';
 import { buildScene } from './scene.js';
-import { createPool, applyMovieToDvd, evictDistantTextures } from './dvd.js';
+import { createPool, applyMovieToDvd } from './dvd.js';
 import { bindEvents, updateHover } from './interaction.js';
 import { HINT_EL, PLAY_BTN, DVD_ACTIONS, getLayout, computeTotalH } from './constants.js';
 import * as THREE from 'three';
@@ -18,11 +18,11 @@ function animate() {
   if (Math.abs(camDiff) > 0.001) {
     g.camera.position.y += camDiff * Math.min(dt * 8, 1);
     g.camera.lookAt(0, g.camera.position.y, 0);
+    g._needsRender = true;
   }
 
-  evictDistantTextures();
-
   if (g.dirtyItemIndices.size > 0) {
+    g._needsRender = true;
     const dirty = new Set(g.dirtyItemIndices);
     g.dirtyItemIndices.clear();
     for (const shelf of g.shelfData) {
@@ -40,6 +40,7 @@ function animate() {
   }
 
   if ((g.state.mode === 'popping' || g.state.mode === 'returning') && g.state.examinedDvd) {
+    g._needsRender = true;
     const elapsed = performance.now() - g.state.animStartTime;
     const raw = Math.min(elapsed / g.state.animDuration, 1.0);
     const t = easeInOutCubic(raw);
@@ -64,6 +65,7 @@ function animate() {
   }
 
   if (g.state.mode === 'examining' && g.state.examinedDvd) {
+    g._needsRender = true;
     g.state.dvdDistance += (g.state.targetDistance - g.state.dvdDistance) * 0.1;
     g.scratchVec.set(0, g.camera.position.y, g.camera.position.z - g.state.dvdDistance);
     g.state.examinedDvd.position.lerp(g.scratchVec, 0.15);
@@ -71,9 +73,13 @@ function animate() {
 
   if (g.state.mode === 'browse' || (g.state.mode === 'examining' && !g.state.isDragging)) {
     updateHover();
+    g._needsRender = true;
   }
 
-  g.renderer.render(g.scene, g.camera);
+  if (g._needsRender) {
+    g.renderer.render(g.scene, g.camera);
+    g._needsRender = false;
+  }
 }
 
 function finishReturn() {

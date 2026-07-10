@@ -25,6 +25,19 @@ const _outlineMat = new THREE.LineBasicMaterial({
   opacity: 0.85,
 });
 
+const _edgeTpl = new THREE.MeshToonMaterial({
+  color: 0x1a1a1c, map: edgeCaseTex, gradientMap,
+});
+const _faceTpl = new THREE.MeshToonMaterial({
+  color: 0x2a2a2a, gradientMap,
+});
+const _spineTpl = new THREE.MeshToonMaterial({
+  color: 0x858590, gradientMap,
+});
+
+let _activeLoads = 0;
+const _MAX_LOADS = 4;
+
 function _ensureOutline(dvd) {
   if (!_outlineGeo) return;
   const existing = dvd.children.find((c) => c.userData?.isOutline);
@@ -50,7 +63,13 @@ export function dvdBody(dvd) {
 
 export async function loadMovieAssets(idx) {
   if (g.loadingSet.has(idx) || g.textureCache.has(idx) || g.textureCache.get(idx) === g.FAILED) return;
+
+  while (_activeLoads >= _MAX_LOADS) {
+    await new Promise(r => setTimeout(r, 50));
+  }
+
   g.loadingSet.add(idx);
+  _activeLoads++;
   const item = g.allItems[idx];
   const coverUrl = item.coverUrl;
   const logoUrl = item.logoUrl;
@@ -87,6 +106,7 @@ export async function loadMovieAssets(idx) {
     });
     g.dirtyItemIndices.add(idx);
   }
+  _activeLoads--;
   g.loadingSet.delete(idx);
 }
 
@@ -118,6 +138,7 @@ export function applyPlaceholderToDvd(dvd, movieIdx) {
 
   const edgeColor = new THREE.Color(dominant.hex).multiplyScalar(0.08);
   for (const ei of [0, 1, 5]) {
+    if (body.material[ei] === _edgeTpl) body.material[ei] = _edgeTpl.clone();
     body.material[ei].color.copy(edgeColor);
   }
 
@@ -182,6 +203,7 @@ export function applyMovieToDvd(dvd, movieIdx) {
 
   const edgeColor = new THREE.Color(dominant.hex).multiplyScalar(0.08);
   for (const ei of [0, 1, 5]) {
+    if (body.material[ei] === _edgeTpl) body.material[ei] = _edgeTpl.clone();
     body.material[ei].color.copy(edgeColor);
     body.material[ei].map = edgeCaseTex;
     body.material[ei].polygonOffset = true;
@@ -211,24 +233,14 @@ export function createPlaceholderDvd(sharedGeo) {
   const group = new THREE.Group();
 
   const geo = sharedGeo;
-  const edgeDummy = new THREE.MeshToonMaterial({
-    color: 0x1a1a1c, map: edgeCaseTex, gradientMap,
-  });
-  const faceDummy = new THREE.MeshToonMaterial({
-    color: 0x2a2a2a, gradientMap,
-  });
-  const spineDummy = new THREE.MeshToonMaterial({
-    color: 0x858590, gradientMap,
-  });
-  const materials = [
-    edgeDummy.clone(), edgeDummy.clone(), faceDummy,
-    faceDummy.clone(), spineDummy, edgeDummy.clone(),
-  ];
+  const materials = [_edgeTpl, _edgeTpl, _faceTpl, _faceTpl, _spineTpl, _edgeTpl];
   const body = new THREE.Mesh(geo, materials);
   body.castShadow = false;
   body.receiveShadow = true;
   body.userData = { isBody: true };
   group.add(body);
+
+  g._raycastTargets.push(body);
 
   group.userData = { title: '', isDvd: true, body };
 
@@ -241,6 +253,7 @@ export function createPool(container) {
   const poolSize = Math.min(POOL_SHELVES * L.dvdsPerView, totalItems);
 
   g.allDvdMeshes = [];
+  g._raycastTargets = [];
   g.shelfData = [];
   g.poolBaseItem = 0;
 
@@ -281,6 +294,8 @@ export function createPool(container) {
       loadMovieAssets(slot);
     }
   }
+
+  g._needsRender = true;
 }
 
 export function repositionPool() {
@@ -349,6 +364,9 @@ export function repositionPool() {
     if (!g.shelfData[shelfIndex]) g.shelfData[shelfIndex] = { dvds: [] };
     g.shelfData[shelfIndex].dvds.push({ mesh });
   }
+
+  evictDistantTextures();
+  g._needsRender = true;
 }
 
 function _releaseTex(tex) {
@@ -387,16 +405,7 @@ export function evictDistantTextures() {
     g.textureCache.delete(idx);
   }
 
-  for (const dvd of g.allDvdMeshes) {
-    if (!keepSet.has(dvd.userData.itemIndex)) _removeOutline(dvd);
-  }
-
-  let loaded = 0;
-  const maxLoads = L.dvdsPerView * 2;
-  for (const idx of keepSet) {
-    if (loaded >= maxLoads) break;
-    if (!g.textureCache.has(idx) && !g.loadingSet.has(idx)) { loadMovieAssets(idx); loaded++; }
-  }
-
   g._lastTextureWindowCenter = poolCenter;
+
+  g._needsRender = true;
 }

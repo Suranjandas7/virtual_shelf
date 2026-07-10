@@ -45,4 +45,7 @@ export const g = {
   scratchVec: new THREE.Vector3(),
   axisY: new THREE.Vector3(0, 1, 0),
   axisX: new THREE.Vector3(1, 0, 0),
+
+  _needsRender: true,
+  _raycastTargets: [],
 };

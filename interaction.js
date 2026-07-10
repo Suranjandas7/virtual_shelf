@@ -18,7 +18,7 @@ export function updateHover() {
   hoverSkipCounter++;
   if (hoverSkipCounter % 5 !== 0) return;
   g.raycaster.setFromCamera(g.mouse, g.camera);
-  const hits = g.allDvdMeshes.length > 0 ? g.raycaster.intersectObjects(g.allDvdMeshes, true) : [];
+  const hits = g._raycastTargets.length > 0 ? g.raycaster.intersectObjects(g._raycastTargets, false) : [];
   g.hoveredDvd = null;
   if (hits.length > 0) {
     let obj = hits[0].object;
@@ -145,6 +145,7 @@ export function bindEvents() {
       g.state.examinedDvd.rotateOnWorldAxis(g.axisY, dx * 0.008);
       g.state.examinedDvd.rotateOnWorldAxis(g.axisX, dy * 0.008);
       g.state.prevMouse.set(e.clientX, e.clientY);
+      g._needsRender = true;
     }
   });
 
@@ -166,7 +167,7 @@ export function bindEvents() {
     g.mouse.y = -(e.clientY / appEl.clientHeight) * 2 + 1;
 
     g.raycaster.setFromCamera(g.mouse, g.camera);
-    const hits = g.allDvdMeshes.length > 0 ? g.raycaster.intersectObjects(g.allDvdMeshes, true) : [];
+    const hits = g._raycastTargets.length > 0 ? g.raycaster.intersectObjects(g._raycastTargets, false) : [];
     let dvd = null;
     if (hits.length > 0) {
       let obj = hits[0].object;
@@ -181,6 +182,7 @@ export function bindEvents() {
       e.preventDefault();
       g.state.targetDistance += e.deltaY * 0.008;
       g.state.targetDistance = Math.max(0.8, Math.min(4.5, g.state.targetDistance));
+      g._needsRender = true;
     }
   }, { passive: false });
 
@@ -215,6 +217,7 @@ export function bindEvents() {
     g.camera.updateProjectionMatrix();
     g.renderer.setSize(appEl.clientWidth, appEl.clientHeight);
     g.renderer.setPixelRatio(Math.min(window.devicePixelRatio, g.appLayout.maxPixelRatio));
+    g._needsRender = true;
   });
 
   window.addEventListener('touchmove', (e) => {
@@ -225,6 +228,7 @@ export function bindEvents() {
       g.state.examinedDvd.rotateOnWorldAxis(g.axisY, dx * 0.008);
       g.state.examinedDvd.rotateOnWorldAxis(g.axisX, dy * 0.008);
       g.state.prevMouse.set(e.touches[0].clientX, e.touches[0].clientY);
+      g._needsRender = true;
     }
   }, { passive: false });
 
