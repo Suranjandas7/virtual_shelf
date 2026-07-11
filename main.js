@@ -66,6 +66,11 @@ function animate() {
 
   if (g.state.mode === 'examining' && g.state.examinedDvd) {
     g._needsRender = true;
+    const rotSpeed = 0.04;
+    if (g.state.keys.left) g.state.examinedDvd.rotateOnWorldAxis(g.axisY, -rotSpeed);
+    if (g.state.keys.right) g.state.examinedDvd.rotateOnWorldAxis(g.axisY, rotSpeed);
+    if (g.state.keys.up) g.state.examinedDvd.rotateOnWorldAxis(g.axisX, -rotSpeed);
+    if (g.state.keys.down) g.state.examinedDvd.rotateOnWorldAxis(g.axisX, rotSpeed);
     g.state.dvdDistance += (g.state.targetDistance - g.state.dvdDistance) * 0.1;
     g.scratchVec.set(0, g.camera.position.y, g.camera.position.z - g.state.dvdDistance);
     g.state.examinedDvd.position.lerp(g.scratchVec, 0.15);

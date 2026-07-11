@@ -102,6 +102,10 @@ export function examineDvd(mesh) {
   g.state.animDuration = 400;
   g.state.dvdDistance = g.appLayout.popOutDistance;
   g.state.targetDistance = g.appLayout.popOutDistance;
+  g.state.keys.left = false;
+  g.state.keys.right = false;
+  g.state.keys.up = false;
+  g.state.keys.down = false;
 
   g.state.animStartPos.copy(worldPos);
   g.state.animStartQuat.copy(worldQuat);
@@ -125,6 +129,10 @@ export function returnDvd() {
   g.state.animStartTime = performance.now();
   g.state.animDuration = 350;
   g.state.isDragging = false;
+  g.state.keys.left = false;
+  g.state.keys.right = false;
+  g.state.keys.up = false;
+  g.state.keys.down = false;
 
   g.state.animStartPos.copy(g.state.examinedDvd.position);
   g.state.animStartQuat.copy(g.state.examinedDvd.quaternion);
@@ -187,8 +195,8 @@ export function bindEvents() {
     if (g.state.mode === 'examining' && g.state.isDragging) {
       const dx = e.clientX - g.state.prevMouse.x;
       const dy = e.clientY - g.state.prevMouse.y;
-      g.state.examinedDvd.rotateOnWorldAxis(g.axisY, dx * 0.008);
-      g.state.examinedDvd.rotateOnWorldAxis(g.axisX, dy * 0.008);
+      g.state.examinedDvd.rotateOnWorldAxis(g.axisY, dx * 0.004);
+      g.state.examinedDvd.rotateOnWorldAxis(g.axisX, dy * 0.004);
       g.state.prevMouse.set(e.clientX, e.clientY);
       g._needsRender = true;
     }
@@ -281,5 +289,48 @@ export function bindEvents() {
     if (g.state.mode !== 'browse') return;
     const touch = e.changedTouches[0];
     _trySelect(touch.clientX, touch.clientY);
+  });
+
+  window.addEventListener('keydown', (e) => {
+    const key = (e.key || '').toLowerCase();
+    let handled = true;
+
+    if (g.state.mode === 'browse') {
+      switch (key) {
+        case 'arrowup': case 'w':
+          if (g.currentShelfIndex > 0) { g.currentShelfIndex--; updateCameraTarget(); repositionPool(); }
+          break;
+        case 'arrowdown': case 's':
+          if (g.currentShelfIndex < g.numShelves - 1) { g.currentShelfIndex++; updateCameraTarget(); repositionPool(); }
+          break;
+        default: handled = false;
+      }
+    } else if (g.state.mode === 'examining') {
+      switch (key) {
+        case 'arrowleft': case 'a': g.state.keys.left = true; break;
+        case 'arrowright': case 'd': g.state.keys.right = true; break;
+        case 'arrowup': case 'w': g.state.keys.up = true; break;
+        case 'arrowdown': case 's': g.state.keys.down = true; break;
+        case 'r': resetDvdOrientation(); break;
+        case 'f': flipDvd(); break;
+        case 'p': { const url = g.state.examinedDvd?.userData?.item?.linkUrl; if (url) window.open(url, '_blank'); } break;
+        case 'escape': case ' ': returnDvd(); break;
+        default: handled = false;
+      }
+    } else {
+      handled = false;
+    }
+
+    if (handled) e.preventDefault();
+  });
+
+  window.addEventListener('keyup', (e) => {
+    const key = (e.key || '').toLowerCase();
+    switch (key) {
+      case 'arrowleft': case 'a': g.state.keys.left = false; break;
+      case 'arrowright': case 'd': g.state.keys.right = false; break;
+      case 'arrowup': case 'w': g.state.keys.up = false; break;
+      case 'arrowdown': case 's': g.state.keys.down = false; break;
+    }
   });
 }

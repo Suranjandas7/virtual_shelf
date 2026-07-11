@@ -27,6 +27,7 @@ export const g = {
     prevMouse: new THREE.Vector2(),
     dvdDistance: 0.8,
     targetDistance: 0.8,
+    keys: { left: false, right: false, up: false, down: false },
   },
 
   allItems: [],
