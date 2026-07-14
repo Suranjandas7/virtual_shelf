@@ -70,6 +70,10 @@ export function showShelfPicker(item) {
   closeBtn.addEventListener('click', close);
   backdrop.addEventListener('click', close);
 
+  overlay.addEventListener('touchstart', (e) => e.stopPropagation());
+  overlay.addEventListener('touchmove', (e) => e.stopPropagation());
+  overlay.addEventListener('touchend', (e) => e.stopPropagation());
+
   async function refreshList() {
     const shelves = await listShelves(item.id);
     ul.innerHTML = '';

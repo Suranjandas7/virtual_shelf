@@ -269,6 +269,7 @@ export function bindEvents() {
   }
 
   window.addEventListener('touchmove', (e) => {
+    if (e.target.closest('#shelf-picker')) return;
     if (g.state.mode === 'examining' && g.state.isDragging && e.touches.length === 1) {
       e.preventDefault();
       const dx = e.touches[0].clientX - g.state.prevMouse.x;
@@ -281,7 +282,7 @@ export function bindEvents() {
   }, { passive: false });
 
   window.addEventListener('touchstart', (e) => {
-    if (e.target.closest('#bottom-bar')) return;
+    if (e.target.closest('#bottom-bar') || e.target.closest('#shelf-picker')) return;
     const vs = getViewportSize();
     g.mouse.x = (e.touches[0].clientX / vs.width) * 2 - 1;
     g.mouse.y = -(e.touches[0].clientY / vs.height) * 2 + 1;
@@ -293,7 +294,7 @@ export function bindEvents() {
   }, { passive: false });
   window.addEventListener('touchend', (e) => {
     g.state.isDragging = false;
-    if (e.target.closest('#bottom-bar')) return;
+    if (e.target.closest('#bottom-bar') || e.target.closest('#shelf-picker')) return;
     if (g.state.mode !== 'browse') return;
     const touch = e.changedTouches[0];
     _trySelect(touch.clientX, touch.clientY);
