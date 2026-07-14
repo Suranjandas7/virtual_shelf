@@ -3,12 +3,34 @@ import { createServer } from 'http';
 import { request as httpRequest } from 'http';
 import { request as httpsRequest } from 'https';
 import crypto from 'crypto';
-import { readFile, stat } from 'fs/promises';
+import { readFile, writeFile, stat } from 'fs/promises';
 import { join, extname, normalize } from 'path';
 import { fileURLToPath } from 'url';
 
 const PORT = 3000;
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
+const SHELVES_FILE = join(ROOT, 'shelves.json');
+
+async function readShelves() {
+  try {
+    const data = await readFile(SHELVES_FILE, 'utf-8');
+    return JSON.parse(data);
+  } catch {
+    return { shelves: [] };
+  }
+}
+
+async function writeShelves(data) {
+  await writeFile(SHELVES_FILE, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+function readBody(req) {
+  return new Promise((resolve) => {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => resolve(body));
+  });
+}
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -185,7 +207,7 @@ function serveIndex(res) {
   });
 }
 
-createServer((req, res) => {
+createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const method = req.method;
   const ts = new Date().toISOString().substring(11, 19);
@@ -217,6 +239,77 @@ createServer((req, res) => {
     });
     proxyReq.end();
     return;
+  }
+
+  if (url.pathname === '/api/shelves') {
+    if (method === 'GET') {
+      const data = await readShelves();
+      if (url.searchParams.has('name')) {
+        const name = url.searchParams.get('name');
+        const shelf = data.shelves.find(s => s.name === name);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify(shelf ? shelf.items : []));
+        return;
+      }
+      const list = data.shelves.map(s => {
+        const info = { name: s.name, label: s.label, count: s.items.length };
+        if (url.searchParams.has('itemId')) {
+          info.hasItem = s.items.some(it => it.id === url.searchParams.get('itemId'));
+        }
+        return info;
+      });
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify(list));
+      return;
+    }
+    if (method === 'POST') {
+      const body = await readBody(req);
+      let payload;
+      try { payload = JSON.parse(body); } catch { res.writeHead(400); res.end('Invalid JSON'); return; }
+      const data = await readShelves();
+      if (payload.remove && payload.name) {
+        data.shelves = data.shelves.filter(s => s.name !== payload.name);
+        await writeShelves(data);
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true }));
+        return;
+      }
+      if (payload.removeItemId && payload.name) {
+        const shelf = data.shelves.find(s => s.name === payload.name);
+        if (shelf) {
+          shelf.items = shelf.items.filter(it => it.id !== payload.removeItemId);
+          await writeShelves(data);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: true }));
+        return;
+      }
+      if (!payload.name) { res.writeHead(400); res.end('Missing name'); return; }
+      let shelf = data.shelves.find(s => s.name === payload.name);
+      if (!shelf) {
+        if (!payload.label) { res.writeHead(400); res.end('Missing label for new shelf'); return; }
+        shelf = { name: payload.name, label: payload.label, items: [] };
+        data.shelves.push(shelf);
+      }
+      if (payload.item) {
+        const exists = shelf.items.some(it => it.id === payload.item.id);
+        if (!exists) shelf.items.push(payload.item);
+      }
+      await writeShelves(data);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: true, shelf: { name: shelf.name, label: shelf.label, count: shelf.items.length } }));
+      return;
+    }
+    if (method === 'DELETE') {
+      const name = url.searchParams.get('name');
+      if (!name) { res.writeHead(400); res.end('Missing name'); return; }
+      const data = await readShelves();
+      data.shelves = data.shelves.filter(s => s.name !== name);
+      await writeShelves(data);
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: true }));
+      return;
+    }
   }
 
   console.log(`[${ts}] ${method} ${url.pathname}`);

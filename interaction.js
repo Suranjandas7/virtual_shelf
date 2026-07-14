@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { g } from './state.js';
-import { HINT_EL, PLAY_BTN, RESET_BTN, FLIP_BTN, RETURN_BTN, DVD_ACTIONS, getLayout } from './constants.js';
+import { HINT_EL, PLAY_BTN, RESET_BTN, FLIP_BTN, RETURN_BTN, DVD_ACTIONS, SHELF_BTN, getLayout } from './constants.js';
 import { repositionPool } from './dvd.js';
 
 function updateCameraTarget() {
@@ -123,6 +123,7 @@ export function returnDvd() {
   if (!g.state.examinedDvd || g.state.mode === 'browse' || g.state.mode === 'returning') return;
   PLAY_BTN.style.display = 'none';
   DVD_ACTIONS.style.display = 'none';
+  SHELF_BTN.style.display = 'none';
   g.hoveredDvd = null;
 
   g.state.mode = 'returning';
@@ -254,6 +255,13 @@ export function bindEvents() {
     if (g.state.mode === 'examining') flipDvd();
   });
 
+  SHELF_BTN.addEventListener('click', async () => {
+    if (!g.state.examinedDvd) return;
+    const item = g.state.examinedDvd.userData.item;
+    const { showShelfPicker } = await import('./shelves.js');
+    showShelfPicker(item);
+  });
+
   window.addEventListener('resize', handleViewportResize);
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', handleViewportResize);
@@ -292,6 +300,7 @@ export function bindEvents() {
   });
 
   window.addEventListener('keydown', (e) => {
+    if (e.target.closest('#shelf-picker') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     const key = (e.key || '').toLowerCase();
     let handled = true;
 
@@ -325,6 +334,7 @@ export function bindEvents() {
   });
 
   window.addEventListener('keyup', (e) => {
+    if (e.target.closest('#shelf-picker') || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     const key = (e.key || '').toLowerCase();
     switch (key) {
       case 'arrowleft': case 'a': g.state.keys.left = false; break;

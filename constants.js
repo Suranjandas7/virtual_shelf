@@ -79,3 +79,4 @@ export const RESET_BTN = document.getElementById('reset-dvd');
 export const FLIP_BTN = document.getElementById('flip-dvd');
 export const RETURN_BTN = document.getElementById('return-dvd');
 export const DVD_ACTIONS = document.getElementById('dvd-actions');
+export const SHELF_BTN = document.getElementById('shelf-btn');

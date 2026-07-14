@@ -23,6 +23,108 @@
     }
     #play-btn:hover { background: rgba(255,255,255,0.2); }
     #play-btn svg { width: 20px; height: 20px; fill: rgba(255,255,255,0.8); }
+    #shelf-btn {
+      position: fixed; top: 74px; right: 20px; display: none;
+      width: 44px; height: 44px; border-radius: 8px;
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+      cursor: pointer; align-items: center; justify-content: center;
+      backdrop-filter: blur(6px); transition: background 0.2s;
+      color: rgba(255,255,255,0.7); font-size: 20px; line-height: 1;
+    }
+    #shelf-btn:hover { background: rgba(255,255,255,0.2); }
+    #shelf-btn svg { width: 20px; height: 20px; fill: none; stroke: rgba(255,255,255,0.8); stroke-width: 2; }
+
+    #shelf-picker {
+      position: fixed; inset: 0; z-index: 300;
+    }
+    .shelf-picker-backdrop {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(2px);
+    }
+    .shelf-picker-panel {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 380px; max-width: 92vw; max-height: 75vh;
+      background: #1e1930; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px; overflow: hidden; display: flex; flex-direction: column;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6);
+    }
+    .shelf-picker-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 18px 0 18px;
+      color: rgba(255,255,255,0.85); font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 16px; font-weight: 600;
+    }
+    .shelf-picker-sub {
+      padding: 4px 18px 12px;
+      color: rgba(255,255,255,0.4); font-family: monospace; font-size: 12px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .shelf-picker-close {
+      background: none; border: none; color: rgba(255,255,255,0.35);
+      font-size: 24px; cursor: pointer; line-height: 1; padding: 0 4px;
+      transition: color 0.15s;
+    }
+    .shelf-picker-close:hover { color: rgba(255,255,255,0.8); }
+    .shelf-list {
+      list-style: none; overflow-y: auto; flex: 1; padding: 0 10px;
+      min-height: 60px; max-height: 320px;
+    }
+    .shelf-list::-webkit-scrollbar { width: 4px; }
+    .shelf-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+    .shelf-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 14px; border-radius: 10px; cursor: pointer;
+      color: rgba(255,255,255,0.75); font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 14px; transition: background 0.12s; margin-bottom: 2px;
+    }
+    .shelf-item:hover { background: rgba(255,255,255,0.07); }
+    .shelf-item-added {
+      background: rgba(100, 180, 120, 0.12);
+    }
+    .shelf-item-added:hover {
+      background: rgba(220, 80, 80, 0.12);
+    }
+    .shelf-item-name {
+      flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .shelf-item-meta {
+      flex-shrink: 0; font-size: 11px; color: rgba(255,255,255,0.35);
+      font-family: monospace; margin-left: 12px;
+    }
+    .shelf-item-added .shelf-item-meta {
+      color: rgba(100, 200, 130, 0.65);
+    }
+    .shelf-item-added:hover .shelf-item-meta {
+      color: rgba(255, 140, 120, 0.75);
+    }
+    .shelf-item-added:hover .shelf-item-meta::after {
+      content: ' click to remove';
+      font-size: 10px;
+    }
+    .shelf-item-empty {
+      padding: 24px 16px; text-align: center;
+      color: rgba(255,255,255,0.25); font-family: monospace; font-size: 13px;
+    }
+    .shelf-picker-new {
+      display: flex; gap: 8px; padding: 12px 16px;
+      border-top: 1px solid rgba(255,255,255,0.08); background: rgba(0,0,0,0.2);
+    }
+    .shelf-picker-new input {
+      flex: 1; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px; padding: 9px 14px; color: rgba(255,255,255,0.85);
+      font-family: "Segoe UI", Arial, sans-serif; font-size: 14px; outline: none;
+      transition: border-color 0.15s;
+    }
+    .shelf-picker-new input:focus { border-color: rgba(255,255,255,0.25); }
+    .shelf-picker-new input::placeholder { color: rgba(255,255,255,0.2); }
+    .shelf-picker-new button {
+      padding: 9px 18px; border-radius: 10px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.8); cursor: pointer; font-size: 14px;
+      font-family: "Segoe UI", Arial, sans-serif; white-space: nowrap;
+      font-weight: 500; transition: background 0.15s;
+    }
+    .shelf-picker-new button:hover { background: rgba(255,255,255,0.2); }
     #dvd-actions {
       position: fixed; top: 20px; left: 20px; display: none;
       flex-direction: column; gap: 10px; z-index: 10;
@@ -116,6 +218,15 @@
         backdrop-filter: none;
       }
       #play-btn svg { width: 18px; height: 18px; }
+
+      #shelf-btn {
+        position: static;
+        width: 40px; height: 40px; border-radius: 10px;
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: none;
+      }
+      #shelf-btn svg { width: 18px; height: 18px; }
     }
 
     #homepage {
@@ -223,6 +334,9 @@
     <a id="play-btn" target="_blank" title="Open">
       <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
     </a>
+    <button id="shelf-btn" title="Add to Shelf">
+      <svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 8h16" stroke-linecap="round"/><path d="M8 4V2" stroke-linecap="round"/><path d="M16 4V2" stroke-linecap="round"/></svg>
+    </button>
   </div>
   <div id="homepage" style="display:none;">
     <h1>Virtual Shelf</h1>

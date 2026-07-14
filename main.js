@@ -3,7 +3,7 @@ import { fetchItems } from './datasource.js';
 import { buildScene } from './scene.js';
 import { createPool, applyMovieToDvd } from './dvd.js';
 import { bindEvents, updateHover } from './interaction.js';
-import { HINT_EL, PLAY_BTN, DVD_ACTIONS, getLayout, computeTotalH } from './constants.js';
+import { HINT_EL, PLAY_BTN, DVD_ACTIONS, SHELF_BTN, getLayout, computeTotalH } from './constants.js';
 import * as THREE from 'three';
 
 function easeInOutCubic(t) {
@@ -52,6 +52,7 @@ function animate() {
         finishReturn();
         PLAY_BTN.style.display = 'none';
         DVD_ACTIONS.style.display = 'none';
+        SHELF_BTN.style.display = 'none';
       } else {
         g.state.mode = 'examining';
         const item = g.state.examinedDvd?.userData?.item;
@@ -60,6 +61,7 @@ function animate() {
           PLAY_BTN.style.display = 'flex';
         }
         DVD_ACTIONS.style.display = 'flex';
+        SHELF_BTN.style.display = 'flex';
       }
     }
   }
@@ -113,7 +115,8 @@ function getRoute() {
   const parts = path.split('/').filter(Boolean);
   const src = parts[0];
   let source;
-  if (src === 'jellyfin') source = 'jellyfin';
+  if (src === 'collections') source = 'shelf';
+  else if (src === 'jellyfin') source = 'jellyfin';
   else if (src === 'steam' || src === 'games') source = 'steam';
   else if (src === 'opds' || src === 'books') source = 'opds';
   else source = 'jellyfin';
@@ -138,7 +141,8 @@ async function init() {
     return;
   }
 
-  const sourceLabel = route.source === 'opds' ? 'OPDS' : route.source === 'steam' ? 'Steam' : 'Jellyfin';
+  const sourceLabel = route.source === 'shelf' ? 'Shelf'
+    : route.source === 'opds' ? 'OPDS' : route.source === 'steam' ? 'Steam' : 'Jellyfin';
   HINT_EL.textContent = `Loading from ${sourceLabel}...`;
 
   let items;
