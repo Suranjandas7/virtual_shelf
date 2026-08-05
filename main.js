@@ -4,6 +4,7 @@ import { buildScene } from './scene.js';
 import { createPool, applyMovieToDvd } from './dvd.js';
 import { bindEvents, updateHover } from './interaction.js';
 import { HINT_EL, PLAY_BTN, DVD_ACTIONS, SHELF_BTN, getLayout, computeTotalH } from './constants.js';
+import { listShelves } from './shelves.js';
 import * as THREE from 'three';
 
 function easeInOutCubic(t) {
@@ -125,19 +126,48 @@ function getRoute() {
 }
 
 function showHomepage() {
-  document.getElementById('homepage').style.display = 'flex';
+  document.getElementById('homepage').style.display = 'block';
   document.getElementById('app').style.display = 'none';
   document.getElementById('bottom-bar').style.display = 'none';
   HINT_EL.style.display = 'none';
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+async function renderHomepageCollections() {
+  const grid = document.getElementById('collections-grid');
+  try {
+    const shelves = await listShelves();
+    grid.innerHTML = '';
+    if (shelves.length === 0) {
+      grid.innerHTML = '<p class="collections-empty">No collections yet</p>';
+      return;
+    }
+    for (const s of shelves) {
+      const a = document.createElement('a');
+      a.href = `/collections/${encodeURIComponent(s.name)}`;
+      a.className = 'collection-item';
+      a.innerHTML = `<span>${escapeHtml(s.label)}</span><small>${s.count} item${s.count !== 1 ? 's' : ''}</small>`;
+      grid.appendChild(a);
+    }
+  } catch {
+    grid.innerHTML = '<p class="collections-empty">Couldn\'t load collections</p>';
+  }
 }
 
 async function init() {
   g.appLayout = getLayout();
 
   const route = getRoute();
+  g.currentShelfName = route.source === 'shelf' ? route.search : null;
 
   if (route.source === 'home') {
     showHomepage();
+    renderHomepageCollections();
     return;
   }
 

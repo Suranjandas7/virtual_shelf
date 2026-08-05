@@ -43,6 +43,8 @@ export const g = {
   poolBaseItem: 0,
   clock: new THREE.Clock(),
 
+  currentShelfName: null,
+
   scratchVec: new THREE.Vector3(),
   axisY: new THREE.Vector3(0, 1, 0),
   axisX: new THREE.Vector3(1, 0, 0),

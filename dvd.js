@@ -284,10 +284,12 @@ export function createPool(container) {
     g.shelfData[shelfIndex].dvds.push({ mesh });
   }
 
-  g.currentShelfIndex = 0;
-  g.cameraTargetY = topY;
-  g.camera.position.y = topY;
-  g.camera.lookAt(0, topY, 0);
+  const startIndex = g.numShelves >= 2 ? 1 : 0;
+  const startY = topY - startIndex * spacingPerView;
+  g.currentShelfIndex = startIndex;
+  g.cameraTargetY = startY;
+  g.camera.position.y = startY;
+  g.camera.lookAt(0, startY, 0);
 
   for (let slot = 0; slot < poolSize; slot++) {
     if (!g.textureCache.has(slot) && !g.loadingSet.has(slot)) {

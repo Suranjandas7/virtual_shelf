@@ -36,7 +36,7 @@ export async function createShelf(name, label) {
   return res.json();
 }
 
-export function showShelfPicker(item) {
+export function showShelfPicker(item, { currentShelfName, onRemovedFromCurrent } = {}) {
   const existing = document.getElementById('shelf-picker');
   if (existing) existing.remove();
 
@@ -101,6 +101,11 @@ export function showShelfPicker(item) {
         li.style.pointerEvents = 'none';
         if (s.hasItem) {
           await removeFromShelf(s.name, item.id);
+          if (currentShelfName && currentShelfName === s.name && onRemovedFromCurrent) {
+            close();
+            onRemovedFromCurrent(item);
+            return;
+          }
         } else {
           await addToShelf(s.name, s.label, item);
         }

@@ -184,6 +184,61 @@ export function flipDvd() {
   g.state.animEndScale = g.state.examinedDvd.scale.x;
 }
 
+function handleRemoveFromCurrentShelf(item) {
+  const idx = g.allItems.findIndex(it => it.id === item.id);
+  if (idx === -1) return;
+
+  if (g.state.examinedDvd) {
+    const { mesh, parent, pos, scale, worldPos, worldQuat } = g.state.savedState;
+    mesh.position.copy(worldPos);
+    mesh.quaternion.copy(worldQuat);
+    mesh.scale.set(1, 1, 1);
+    g.scene.remove(mesh);
+    parent.add(mesh);
+    mesh.position.x = pos.x;
+    mesh.position.y = pos.y;
+    mesh.position.z = pos.z;
+    mesh.scale.copy(scale);
+    g.hoveredDvd = null;
+    g.state.examinedDvd = null;
+    g.state.savedState = null;
+    g.state.mode = 'browse';
+    PLAY_BTN.style.display = 'none';
+    DVD_ACTIONS.style.display = 'none';
+    SHELF_BTN.style.display = 'none';
+  }
+
+  g.allItems.splice(idx, 1);
+
+  const removed = g.textureCache.get(idx);
+  if (removed && removed !== g.FAILED) {
+    for (const k of ['coverTex', 'spineTex', 'synopsisTex', 'fallbackCover', 'logoTex']) {
+      removed[k]?.dispose();
+    }
+  }
+  g.textureCache.delete(idx);
+  const newCache = new Map();
+  for (const [k, v] of g.textureCache) {
+    newCache.set(k > idx ? k - 1 : k, v);
+  }
+  g.textureCache = newCache;
+  g.loadingSet.clear();
+
+  const L = g.appLayout;
+  g.numShelves = Math.max(1, Math.ceil(g.allItems.length / L.dvdsPerView));
+  g.currentShelfIndex = Math.min(g.currentShelfIndex, g.numShelves - 1);
+  updateCameraTarget();
+
+  if (g.allItems.length === 0) {
+    for (const mesh of g.allDvdMeshes) mesh.visible = false;
+    HINT_EL.style.opacity = '1';
+    HINT_EL.textContent = 'Collection is empty.';
+  } else {
+    repositionPool();
+  }
+  g._needsRender = true;
+}
+
 export function bindEvents() {
   const appEl = document.getElementById('app');
 
@@ -259,7 +314,10 @@ export function bindEvents() {
     if (!g.state.examinedDvd) return;
     const item = g.state.examinedDvd.userData.item;
     const { showShelfPicker } = await import('./shelves.js');
-    showShelfPicker(item);
+    showShelfPicker(item, {
+      currentShelfName: g.currentShelfName,
+      onRemovedFromCurrent: handleRemoveFromCurrentShelf,
+    });
   });
 
   window.addEventListener('resize', handleViewportResize);

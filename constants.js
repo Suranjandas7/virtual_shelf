@@ -7,11 +7,11 @@ export const DVD_D = 0.52;
 export const POOL_SHELVES = 3;
 
 const DESKTOP = {
-  dvdsPerView: 18,
-  spacing: 0.04,
-  dvdT: 0.03,
+  dvdsPerView: 9,
+  spacing: 0.066,
+  dvdT: 0.06,
   cameraZ: 1.3,
-  cameraFov: 60,
+  cameraFov: 57,
   maxPixelRatio: 2,
   shadowMapSize: 1024,
   popOutDistance: 0.8,
