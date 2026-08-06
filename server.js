@@ -114,7 +114,12 @@ function fetchWithDigest(targetUrl, res) {
   const u = new URL(targetUrl);
   const method = 'GET';
 
-  const req1 = proto.call(null, u, { method, headers: { 'User-Agent': 'virtual-shelf/1.0' } }, (proxyRes) => {
+  const reqOpts = {
+    method,
+    headers: { 'User-Agent': 'virtual-shelf/1.0' },
+  };
+
+  const req1 = proto.call(null, u, reqOpts, (proxyRes) => {
     if (proxyRes.statusCode === 401) {
       const authHeader = proxyRes.headers['www-authenticate'];
       if (!authHeader || !authHeader.toLowerCase().startsWith('digest')) {
@@ -123,6 +128,7 @@ function fetchWithDigest(targetUrl, res) {
           'Access-Control-Allow-Origin': '*',
         });
         proxyRes.pipe(res);
+        proxyRes.on('error', (err) => console.error(`[proxy] res error for ${targetUrl}: ${err.message}`));
         return;
       }
 
@@ -140,8 +146,10 @@ function fetchWithDigest(targetUrl, res) {
             'Cache-Control': 'public, max-age=3600',
           });
           proxyRes2.pipe(res);
+          proxyRes2.on('error', (err) => console.error(`[proxy] res2 error for ${targetUrl}: ${err.message}`));
         });
-        req2.on('error', () => {
+        req2.on('error', (err) => {
+          console.error(`[proxy] req2 error for ${targetUrl}: ${err.message}`);
           if (!res.headersSent) {
             res.writeHead(502);
             res.end('Proxy error');
@@ -158,9 +166,11 @@ function fetchWithDigest(targetUrl, res) {
       'Cache-Control': 'public, max-age=3600',
     });
     proxyRes.pipe(res);
+    proxyRes.on('error', (err) => console.error(`[proxy] res error for ${targetUrl}: ${err.message}`));
   });
 
-  req1.on('error', () => {
+  req1.on('error', (err) => {
+    console.error(`[proxy] req1 error for ${targetUrl}: ${err.message}`);
     if (!res.headersSent) {
       res.writeHead(502);
       res.end('Proxy error');
