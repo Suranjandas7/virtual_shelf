@@ -1,9 +1,5 @@
 const FEED_BASE = 'https://www.gutenberg.org/ebooks/search.opds/';
 
-function proxify(url) {
-  return window.location.origin + '/proxy?url=' + encodeURIComponent(url);
-}
-
 export async function fetchItems(searchTerm) {
   let feedUrl = FEED_BASE;
   if (searchTerm) {
@@ -29,9 +25,8 @@ export async function fetchItems(searchTerm) {
 }
 
 async function fetchAndParsePage(url) {
-  const fetchUrl = proxify(url);
-  const res = await fetch(fetchUrl);
-  if (!res.ok) throw new Error(`Gutenberg feed error: ${res.status} ${res.statusText} for ${fetchUrl}`);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Gutenberg feed error: ${res.status} ${res.statusText} for ${url}`);
 
   const text = await res.text();
   return parseFeed(text, url);
@@ -65,7 +60,7 @@ function parseFeed(xml, feedUrl) {
     const author = queryText(entry, 'content', 'type', 'text');
     const updated = queryText(entry, 'updated');
 
-    const coverUrl = proxify('https://www.gutenberg.org/cache/epub/' + bookId + '/pg' + bookId + '.cover.medium.jpg');
+    const coverUrl = 'https://www.gutenberg.org/cache/epub/' + bookId + '/pg' + bookId + '.cover.medium.jpg';
 
     const date = updated ? updated.substring(0, 4) : '';
 
