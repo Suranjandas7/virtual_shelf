@@ -2,6 +2,7 @@ function getSource() {
   if (location.pathname.startsWith('/collections')) return 'shelf';
   if (location.pathname.startsWith('/opds')) return 'opds';
   if (location.pathname.startsWith('/books')) return 'opds';
+  if (location.pathname.startsWith('/gutenberg')) return 'gutenberg';
   if (location.pathname.startsWith('/steam')) return 'steam';
   if (location.pathname.startsWith('/games')) return 'steam';
   return 'jellyfin';
@@ -19,6 +20,10 @@ export async function fetchItems(searchTerm) {
   if (source === 'opds') {
     const { fetchItems: opdsFetch } = await import('./opds.js');
     return opdsFetch(searchTerm);
+  }
+  if (source === 'gutenberg') {
+    const { fetchItems: gutenFetch } = await import('./gutenberg.js');
+    return gutenFetch(searchTerm);
   }
   if (source === 'steam') {
     const { fetchItems: steamFetch } = await import('./steam.js');

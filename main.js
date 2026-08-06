@@ -62,7 +62,7 @@ function animate() {
           PLAY_BTN.style.display = 'flex';
         }
         DVD_ACTIONS.style.display = 'flex';
-        SHELF_BTN.style.display = 'flex';
+        if (g.source !== 'gutenberg') SHELF_BTN.style.display = 'flex';
       }
     }
   }
@@ -120,6 +120,7 @@ function getRoute() {
   else if (src === 'jellyfin') source = 'jellyfin';
   else if (src === 'steam' || src === 'games') source = 'steam';
   else if (src === 'opds' || src === 'books') source = 'opds';
+  else if (src === 'gutenberg') source = 'gutenberg';
   else source = 'jellyfin';
   const search = parts.length >= 2 ? decodeURIComponent(parts.slice(1).join('/')) : null;
   return { source, search };
@@ -171,8 +172,11 @@ async function init() {
     return;
   }
 
+  g.source = route.source;
+
   const sourceLabel = route.source === 'shelf' ? 'Shelf'
-    : route.source === 'opds' ? 'OPDS' : route.source === 'steam' ? 'Steam' : 'Jellyfin';
+    : route.source === 'opds' ? 'OPDS' : route.source === 'gutenberg' ? 'Gutenberg'
+    : route.source === 'steam' ? 'Steam' : 'Jellyfin';
   HINT_EL.textContent = `Loading from ${sourceLabel}...`;
 
   let items;
@@ -191,7 +195,7 @@ async function init() {
     return;
   }
 
-  if (route.source === 'opds') {
+  if (route.source === 'opds' || route.source === 'gutenberg') {
     items.sort((a, b) => {
       const da = a._date || '';
       const db = b._date || '';

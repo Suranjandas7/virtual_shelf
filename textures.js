@@ -12,6 +12,10 @@ function loadImg(src) {
 }
 
 export async function loadImage(url) {
+  if (url.startsWith('data:')) {
+    return loadImg(url);
+  }
+
   try {
     const blob = await getCachedBlob(url);
     if (blob) {
