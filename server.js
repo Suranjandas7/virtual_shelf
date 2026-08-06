@@ -117,6 +117,7 @@ function fetchWithDigest(targetUrl, res) {
   const reqOpts = {
     method,
     headers: { 'User-Agent': 'virtual-shelf/1.0' },
+    minVersion: 'TLSv1.2',
   };
 
   const req1 = proto.call(null, u, reqOpts, (proxyRes) => {
@@ -139,6 +140,7 @@ function fetchWithDigest(targetUrl, res) {
         const req2 = proto.call(null, u, {
           method,
           headers: { Authorization: auth, 'User-Agent': 'virtual-shelf/1.0' },
+          minVersion: 'TLSv1.2',
         }, (proxyRes2) => {
           res.writeHead(proxyRes2.statusCode, proxyRes2.statusMessage, {
             'Content-Type': proxyRes2.headers['content-type'] || 'application/octet-stream',
@@ -149,7 +151,7 @@ function fetchWithDigest(targetUrl, res) {
           proxyRes2.on('error', (err) => console.error(`[proxy] res2 error for ${targetUrl}: ${err.message}`));
         });
         req2.on('error', (err) => {
-          console.error(`[proxy] req2 error for ${targetUrl}: ${err.message}`);
+          console.error(`[proxy] req2 error for ${targetUrl}: ${err.message || '(no message)'} code=${err.code || 'none'}`);
           if (!res.headersSent) {
             res.writeHead(502);
             res.end('Proxy error');
@@ -170,7 +172,7 @@ function fetchWithDigest(targetUrl, res) {
   });
 
   req1.on('error', (err) => {
-    console.error(`[proxy] req1 error for ${targetUrl}: ${err.message}`);
+    console.error(`[proxy] req1 error for ${targetUrl}: ${err.message || '(no message)'} code=${err.code || 'none'}`);
     if (!res.headersSent) {
       res.writeHead(502);
       res.end('Proxy error');
