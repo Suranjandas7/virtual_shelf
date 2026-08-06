@@ -11,6 +11,23 @@ const PORT = 8321;
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const SHELVES_FILE = join(ROOT, 'shelves.json');
 
+const _hostQueues = new Map();
+
+function queueHostRequest(hostname, fn) {
+  let q = _hostQueues.get(hostname);
+  if (!q) { q = []; _hostQueues.set(hostname, q); }
+  q.push(fn);
+  if (q.length === 1) fn();
+}
+
+function releaseHostRequest(hostname) {
+  const q = _hostQueues.get(hostname);
+  if (!q) return;
+  q.shift();
+  if (q.length > 0) q[0]();
+  else _hostQueues.delete(hostname);
+}
+
 async function readShelves() {
   try {
     const data = await readFile(SHELVES_FILE, 'utf-8');
@@ -109,10 +126,12 @@ function parseDigestChallenge(header) {
   return challenge;
 }
 
-function fetchWithDigest(targetUrl, res) {
+function fetchWithDigest(targetUrl, res, hostname) {
   const proto = targetUrl.startsWith('https') ? httpsRequest : httpRequest;
   const u = new URL(targetUrl);
   const method = 'GET';
+
+  const done = () => { releaseHostRequest(hostname); };
 
   const reqOpts = {
     method,
@@ -129,6 +148,7 @@ function fetchWithDigest(targetUrl, res) {
           'Access-Control-Allow-Origin': '*',
         });
         proxyRes.pipe(res);
+        res.on('close', done);
         proxyRes.on('error', (err) => console.error(`[proxy] res error for ${targetUrl}: ${err.message}`));
         return;
       }
@@ -148,6 +168,7 @@ function fetchWithDigest(targetUrl, res) {
             'Cache-Control': 'public, max-age=3600',
           });
           proxyRes2.pipe(res);
+          res.on('close', done);
           proxyRes2.on('error', (err) => console.error(`[proxy] res2 error for ${targetUrl}: ${err.message}`));
         });
         req2.on('error', (err) => {
@@ -156,6 +177,7 @@ function fetchWithDigest(targetUrl, res) {
             res.writeHead(502);
             res.end('Proxy error');
           }
+          done();
         });
         req2.end();
       });
@@ -168,6 +190,7 @@ function fetchWithDigest(targetUrl, res) {
       'Cache-Control': 'public, max-age=3600',
     });
     proxyRes.pipe(res);
+    res.on('close', done);
     proxyRes.on('error', (err) => console.error(`[proxy] res error for ${targetUrl}: ${err.message}`));
   });
 
@@ -177,6 +200,7 @@ function fetchWithDigest(targetUrl, res) {
       res.writeHead(502);
       res.end('Proxy error');
     }
+    done();
   });
   req1.end();
 }
@@ -227,7 +251,10 @@ createServer(async (req, res) => {
   if (url.pathname === '/proxy' && url.searchParams.get('url')) {
     const target = url.searchParams.get('url');
     console.log(`[${ts}] ${method} /proxy → ${target.substring(0, 80)}...`);
-    fetchWithDigest(target, res);
+    const hostname = new URL(target).hostname;
+    queueHostRequest(hostname, () => {
+      fetchWithDigest(target, res, hostname);
+    });
     return;
   }
 
