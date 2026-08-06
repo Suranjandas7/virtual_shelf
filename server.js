@@ -2,12 +2,13 @@
 import { createServer } from 'http';
 import { request as httpRequest } from 'http';
 import { request as httpsRequest } from 'https';
+import { connect as http2Connect } from 'http2';
 import crypto from 'crypto';
 import { readFile, writeFile, stat } from 'fs/promises';
 import { join, extname, normalize } from 'path';
 import { fileURLToPath } from 'url';
 
-const PORT = 8321;
+const PORT = 3000;
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const SHELVES_FILE = join(ROOT, 'shelves.json');
 
@@ -124,6 +125,53 @@ function parseDigestChallenge(header) {
     challenge[key] = val;
   }
   return challenge;
+}
+
+function fetchH2(targetUrl, res, hostname) {
+  const u = new URL(targetUrl);
+  const done = () => { releaseHostRequest(hostname); };
+
+  const authority = `https://${u.hostname}${u.port ? ':' + u.port : ''}`;
+  const client = http2Connect(authority);
+  const cleanup = () => { client.close(); done(); };
+
+  const req = client.request({
+    ':method': 'GET',
+    ':path': u.pathname + (u.search || ''),
+    'user-agent': 'Mozilla/5.0 (compatible; virtual-shelf/1.0)',
+  });
+
+  req.on('response', (headers) => {
+    res.writeHead(200, {
+      'Content-Type': headers['content-type'] || 'application/octet-stream',
+      'Access-Control-Allow-Origin': '*',
+      'Cache-Control': 'public, max-age=3600',
+    });
+    req.pipe(res);
+    req.on('end', cleanup);
+  });
+
+  req.on('error', (err) => {
+    console.error(`[proxy] h2 error for ${targetUrl}: ${err.message || '(no message)'} code=${err.code || 'none'}`);
+    if (!res.headersSent) {
+      res.writeHead(502);
+      res.end('Proxy error');
+    }
+    client.close();
+    done();
+  });
+
+  client.on('error', (err) => {
+    if (req.destroyed) return;
+    console.error(`[proxy] h2 session error for ${targetUrl}: ${err.message || '(no message)'} code=${err.code || 'none'}`);
+    if (!res.headersSent) {
+      res.writeHead(502);
+      res.end('Proxy error');
+    }
+    done();
+  });
+
+  req.end();
 }
 
 function fetchWithDigest(targetUrl, res, hostname) {
@@ -252,8 +300,10 @@ createServer(async (req, res) => {
     const target = url.searchParams.get('url');
     console.log(`[${ts}] ${method} /proxy → ${target.substring(0, 80)}...`);
     const hostname = new URL(target).hostname;
+    const useH2 = hostname === 'www.gutenberg.org';
     queueHostRequest(hostname, () => {
-      fetchWithDigest(target, res, hostname);
+      if (useH2) fetchH2(target, res, hostname);
+      else fetchWithDigest(target, res, hostname);
     });
     return;
   }
