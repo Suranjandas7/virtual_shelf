@@ -113,16 +113,14 @@ export async function loadMovieAssets(idx) {
 function _genSpineTex(cached, item, dominant, logoTex) {
   if (cached.spineTex && (!logoTex || cached._spineHadLogo)) return;
   if (cached.spineTex) _releaseTex(cached.spineTex);
-  const isOpds = item._source === 'opds';
-  cached.spineTex = createSpineTexture(item.title, dominant, logoTex, item.subtitle, { darkTextOnLight: isOpds });
+  cached.spineTex = createSpineTexture(item.title, dominant, logoTex, item.subtitle, { darkTextOnLight: true });
   cached._spineHadLogo = !!logoTex;
 }
 
 function _genSynopsisTex(cached, item, coverTex, dominant, L) {
   if (cached.synopsisTex && (!coverTex || cached._synopsisHadCover)) return;
   if (cached.synopsisTex) _releaseTex(cached.synopsisTex);
-  const isOpds = item._source === 'opds';
-  cached.synopsisTex = createSynopsisTexture(item.title, item.description, coverTex, item.subtitle, L.synopsisTexW, L.synopsisTexH, { dominantColor: dominant, darkTextOnLight: isOpds });
+  cached.synopsisTex = createSynopsisTexture(item.title, item.description, coverTex, item.subtitle, L.synopsisTexW, L.synopsisTexH, { dominantColor: dominant, darkTextOnLight: true });
   cached._synopsisHadCover = !!coverTex;
 }
 
