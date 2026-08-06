@@ -7,7 +7,7 @@ import { readFile, writeFile, stat } from 'fs/promises';
 import { join, extname, normalize } from 'path';
 import { fileURLToPath } from 'url';
 
-const PORT = 3000;
+const PORT = 8321;
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const SHELVES_FILE = join(ROOT, 'shelves.json');
 
@@ -184,7 +184,7 @@ function serveStatic(req, res) {
     if (st.isFile()) {
       readFile(filePath).then((content) => {
         const ext = extname(filePath).toLowerCase();
-        res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream' });
+        res.writeHead(200, { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
         res.end(content);
       }).catch(() => {
         serveIndex(res);
@@ -199,7 +199,7 @@ function serveStatic(req, res) {
 
 function serveIndex(res) {
   readFile(join(ROOT, 'index.html')).then((content) => {
-    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' });
     res.end(content);
   }).catch(() => {
     res.writeHead(404);
