@@ -18,6 +18,10 @@ const gradientMap = (() => {
   return tex;
 })();
 
+function tryExtractColor(img) {
+  try { return extractDominantColor(img); } catch { return null; }
+}
+
 let _outlineGeo = null;
 const _outlineMat = new THREE.LineBasicMaterial({
   color: 0x000000,
@@ -80,7 +84,7 @@ export async function loadMovieAssets(idx) {
       const L = g.appLayout;
       const coverImg = await loadImage(coverUrl);
       coverTex = createTextureFromImage(coverImg, { fitW: L.coverTexW, fitH: L.coverTexH });
-      dominant = extractDominantColor(coverImg);
+      dominant = tryExtractColor(coverImg);
     }
     if (logoUrl) {
       try { logoTex = await loadCoverTexture(logoUrl); } catch { /* spine will use text fallback */ }

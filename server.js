@@ -7,7 +7,7 @@ import { readFile, writeFile, stat } from 'fs/promises';
 import { join, extname, normalize } from 'path';
 import { fileURLToPath } from 'url';
 
-const PORT = 8321;
+const PORT = 3000;
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const SHELVES_FILE = join(ROOT, 'shelves.json');
 

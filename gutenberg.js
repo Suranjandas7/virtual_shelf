@@ -1,5 +1,9 @@
 const FEED_BASE = 'https://www.gutenberg.org/ebooks/search.opds/';
 
+function proxify(url) {
+  return window.location.origin + '/proxy?url=' + encodeURIComponent(url);
+}
+
 export async function fetchItems(searchTerm) {
   let feedUrl = FEED_BASE;
   if (searchTerm) {
@@ -60,7 +64,8 @@ function parseFeed(xml, feedUrl) {
     const author = queryText(entry, 'content', 'type', 'text');
     const updated = queryText(entry, 'updated');
 
-    const coverUrl = 'https://www.gutenberg.org/cache/epub/' + bookId + '/pg' + bookId + '.cover.medium.jpg';
+    const rawCover = 'https://www.gutenberg.org/cache/epub/' + bookId + '/pg' + bookId + '.cover.medium.jpg';
+    const coverUrl = proxify(rawCover);
 
     const date = updated ? updated.substring(0, 4) : '';
 

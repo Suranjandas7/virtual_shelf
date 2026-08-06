@@ -6,7 +6,12 @@ function loadImg(src) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Failed to load image'));
+    img.onerror = () => {
+      const img2 = new Image();
+      img2.onload = () => resolve(img2);
+      img2.onerror = () => reject(new Error('Failed to load image'));
+      img2.src = src;
+    };
     img.src = src;
   });
 }
@@ -37,25 +42,35 @@ export async function loadImage(url) {
 }
 
 export function createTextureFromImage(img, { fitW = 0, fitH = 0 } = {}) {
-  const canvas = document.createElement('canvas');
-  if (fitW > 0 && fitH > 0) {
-    canvas.width = fitW;
-    canvas.height = fitH;
-  } else {
-    const maxSize = 512;
-    const scale = Math.min(maxSize / img.width, maxSize / img.height);
-    canvas.width = Math.round(img.width * scale);
-    canvas.height = Math.round(img.height * scale);
+  try {
+    const canvas = document.createElement('canvas');
+    if (fitW > 0 && fitH > 0) {
+      canvas.width = fitW;
+      canvas.height = fitH;
+    } else {
+      const maxSize = 512;
+      const scale = Math.min(maxSize / img.width, maxSize / img.height);
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+    }
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = true;
+    tex.anisotropy = 8;
+    return tex;
+  } catch {
+    const tex = new THREE.Texture(img);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.generateMipmaps = true;
+    tex.needsUpdate = true;
+    return tex;
   }
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.minFilter = THREE.LinearMipmapLinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  tex.generateMipmaps = true;
-  tex.anisotropy = 8;
-  return tex;
 }
 
 export function createEdgeTexture() {
