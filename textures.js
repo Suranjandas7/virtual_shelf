@@ -6,12 +6,16 @@ function loadImg(src) {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
-    img.onerror = () => {
-      const img2 = new Image();
-      img2.onload = () => resolve(img2);
-      img2.onerror = () => reject(new Error('Failed to load image'));
-      img2.src = src;
-    };
+    img.onerror = () => reject(new Error('Failed to load image'));
+    img.src = src;
+  });
+}
+
+function loadImgNoCors(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Failed to load image'));
     img.src = src;
   });
 }
@@ -37,7 +41,7 @@ export async function loadImage(url) {
     const objUrl = URL.createObjectURL(blob);
     try { return await loadImg(objUrl); } finally { URL.revokeObjectURL(objUrl); }
   } catch {
-    return loadImg(url);
+    return loadImgNoCors(url);
   }
 }
 
