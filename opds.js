@@ -119,6 +119,7 @@ function parseOPDS2(data, feedUrl) {
       logoUrl: null,
       linkUrl,
       _date: meta.published || '',
+      _source: 'opds',
     });
   }
 
@@ -217,6 +218,7 @@ function parseOPDS1(xml, feedUrl) {
       logoUrl: null,
       linkUrl,
       _date: published || '',
+      _source: 'opds',
     });
   }
 

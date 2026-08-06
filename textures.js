@@ -72,7 +72,7 @@ export function createEdgeTexture() {
 
 export const edgeCaseTex = createEdgeTexture();
 
-export function createSpineTexture(title, dominantColor, logoTex, subtitle = '') {
+export function createSpineTexture(title, dominantColor, logoTex, subtitle = '', opts = {}) {
   const c = document.createElement('canvas');
   c.width = 512; c.height = 64;
   const ctx = c.getContext('2d');
@@ -123,7 +123,8 @@ export function createSpineTexture(title, dominantColor, logoTex, subtitle = '')
     ctx.restore();
   } else {
     ctx.save();
-    ctx.fillStyle = '#cccccc';
+    const useDarkText = opts.darkTextOnLight && isLightColor(dominantColor);
+    ctx.fillStyle = useDarkText ? '#111111' : '#cccccc';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
@@ -139,7 +140,7 @@ export function createSpineTexture(title, dominantColor, logoTex, subtitle = '')
       ctx.fillText(display, 256, 24);
 
       ctx.font = '10px "Segoe UI", Arial, sans-serif';
-      ctx.fillStyle = '#999999';
+      ctx.fillStyle = useDarkText ? '#444444' : '#999999';
       let subDisplay = subtitle;
       while (ctx.measureText(subDisplay).width > maxWidth) {
         subDisplay = subDisplay.slice(0, -1);
@@ -169,7 +170,7 @@ export function createSpineTexture(title, dominantColor, logoTex, subtitle = '')
   return tex;
 }
 
-export function createSynopsisTexture(title, overview, coverTex, subtitle = '', cw = 540, ch = 390) {
+export function createSynopsisTexture(title, overview, coverTex, subtitle = '', cw = 540, ch = 390, opts = {}) {
   const c = document.createElement('canvas');
   c.width = cw; c.height = ch;
   const ctx = c.getContext('2d');
@@ -185,11 +186,13 @@ export function createSynopsisTexture(title, overview, coverTex, subtitle = '', 
   ctx.fillStyle = 'rgba(0,0,0,0.50)';
   ctx.fillRect(0, 0, cw, ch);
 
+  const useDarkText = opts.darkTextOnLight && isLightColor(opts.dominantColor);
+
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth = 2 * s;
   ctx.strokeRect(15 * s, 12 * s, cw - 30 * s, ch - 24 * s);
 
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = useDarkText ? '#111111' : '#ffffff';
   ctx.font = `bold ${Math.round(18 * s)}px "Segoe UI", Arial, sans-serif`;
   ctx.textAlign = 'center';
   const words = title.split(' ');
@@ -215,7 +218,7 @@ export function createSynopsisTexture(title, overview, coverTex, subtitle = '', 
 
   if (subtitle) {
     ctx.font = `${Math.round(13 * s)}px "Segoe UI", Arial, sans-serif`;
-    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.fillStyle = useDarkText ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.65)';
     ctx.fillText(subtitle, cw / 2, ty);
     ty += 20 * s;
   }
@@ -225,7 +228,7 @@ export function createSynopsisTexture(title, overview, coverTex, subtitle = '', 
   ctx.beginPath(); ctx.moveTo(42 * s, ty + 6 * s); ctx.lineTo(cw - 42 * s, ty + 6 * s); ctx.stroke();
 
   const synopsis = overview || 'No description available.';
-  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillStyle = useDarkText ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)';
   ctx.font = `${Math.round(13 * s)}px "Segoe UI", Arial, sans-serif`;
   ctx.textAlign = 'left';
   const maxBodyW = cw - 75 * s;
@@ -289,6 +292,12 @@ export function createFallbackCover(title, tint, cw = 180, ch = 130) {
   tex.generateMipmaps = true;
   tex.anisotropy = 8;
   return tex;
+}
+
+function isLightColor(c) {
+  if (!c) return false;
+  const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+  return lum > 200;
 }
 
 export function extractDominantColor(image) {

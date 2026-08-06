@@ -113,14 +113,16 @@ export async function loadMovieAssets(idx) {
 function _genSpineTex(cached, item, dominant, logoTex) {
   if (cached.spineTex && (!logoTex || cached._spineHadLogo)) return;
   if (cached.spineTex) _releaseTex(cached.spineTex);
-  cached.spineTex = createSpineTexture(item.title, dominant, logoTex, item.subtitle);
+  const isOpds = item._source === 'opds';
+  cached.spineTex = createSpineTexture(item.title, dominant, logoTex, item.subtitle, { darkTextOnLight: isOpds });
   cached._spineHadLogo = !!logoTex;
 }
 
-function _genSynopsisTex(cached, item, coverTex, L) {
+function _genSynopsisTex(cached, item, coverTex, dominant, L) {
   if (cached.synopsisTex && (!coverTex || cached._synopsisHadCover)) return;
   if (cached.synopsisTex) _releaseTex(cached.synopsisTex);
-  cached.synopsisTex = createSynopsisTexture(item.title, item.description, coverTex, item.subtitle, L.synopsisTexW, L.synopsisTexH);
+  const isOpds = item._source === 'opds';
+  cached.synopsisTex = createSynopsisTexture(item.title, item.description, coverTex, item.subtitle, L.synopsisTexW, L.synopsisTexH, { dominantColor: dominant, darkTextOnLight: isOpds });
   cached._synopsisHadCover = !!coverTex;
 }
 
@@ -176,7 +178,7 @@ export function applyMovieToDvd(dvd, movieIdx) {
   }
   body.material[4].needsUpdate = true;
 
-  _genSynopsisTex(cached, item, coverTex, L);
+  _genSynopsisTex(cached, item, coverTex, dominant, L);
 
   const frontTex = coverTex || (_genFallbackCover(cached, item, dominant, L), cached.fallbackCover);
   if (!body.material[2].map) {
