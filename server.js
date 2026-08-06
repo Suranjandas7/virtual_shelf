@@ -114,7 +114,7 @@ function fetchWithDigest(targetUrl, res) {
   const u = new URL(targetUrl);
   const method = 'GET';
 
-  const req1 = proto.call(null, u, { method }, (proxyRes) => {
+  const req1 = proto.call(null, u, { method, headers: { 'User-Agent': 'virtual-shelf/1.0' } }, (proxyRes) => {
     if (proxyRes.statusCode === 401) {
       const authHeader = proxyRes.headers['www-authenticate'];
       if (!authHeader || !authHeader.toLowerCase().startsWith('digest')) {
@@ -132,7 +132,7 @@ function fetchWithDigest(targetUrl, res) {
         const auth = computeDigest(challenge, opdsAuth.username, opdsAuth.password, method, u.pathname + (u.search || ''));
         const req2 = proto.call(null, u, {
           method,
-          headers: { Authorization: auth },
+          headers: { Authorization: auth, 'User-Agent': 'virtual-shelf/1.0' },
         }, (proxyRes2) => {
           res.writeHead(proxyRes2.statusCode, proxyRes2.statusMessage, {
             'Content-Type': proxyRes2.headers['content-type'] || 'application/octet-stream',
