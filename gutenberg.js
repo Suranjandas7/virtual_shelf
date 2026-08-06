@@ -64,7 +64,7 @@ function parseFeed(xml, feedUrl) {
     const author = queryText(entry, 'content', 'type', 'text');
     const updated = queryText(entry, 'updated');
 
-    const rawCover = 'https://www.gutenberg.org/cache/epub/' + bookId + '/pg' + bookId + '.cover.medium.jpg';
+    const rawCover = 'https://www.gutenberg.org/files/' + bookId + '/' + bookId + '-h/images/cover.jpg';
     const coverUrl = proxify(rawCover);
 
     const date = updated ? updated.substring(0, 4) : '';
