@@ -240,8 +240,6 @@ function handleRemoveFromCurrentShelf(item) {
 }
 
 export function bindEvents() {
-  const appEl = document.getElementById('app');
-
   window.addEventListener('mousemove', (e) => {
     if (!e.target.closest('#bottom-bar')) {
       const vs = getViewportSize();

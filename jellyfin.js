@@ -1,14 +1,12 @@
 import { JELLYFIN, JELLYFIN_WEB } from './config.js';
 
 export async function fetchItems(searchTerm) {
-  let url = `${JELLYFIN.server}/Users/${JELLYFIN.userId}/Items`
+  let url = `/jellyfin-api/Users/${JELLYFIN.userId}/Items`
     + '?IncludeItemTypes=Movie,Series&Recursive=true&SortBy=SortName&Fields=Overview';
   if (searchTerm) {
     url += '&searchTerm=' + encodeURIComponent(searchTerm);
   }
-  const res = await fetch(url, {
-    headers: { 'X-MediaBrowser-Token': JELLYFIN.apiKey },
-  });
+  const res = await fetch(url);
   if (!res.ok) throw new Error(`Jellyfin API error: ${res.status} ${res.statusText}`);
   const data = await res.json();
   return (data?.Items || []).map((item) => ({
@@ -24,12 +22,12 @@ export async function fetchItems(searchTerm) {
 
 function getImageUrl(itemId, imageTag) {
   if (!itemId || !imageTag) return null;
-  return `${JELLYFIN.server}/Items/${itemId}/Images/Primary`
-    + `?api_key=${JELLYFIN.apiKey}&tag=${imageTag}&quality=90&maxHeight=800`;
+  return `/jellyfin-api/Items/${itemId}/Images/Primary`
+    + `?tag=${imageTag}&quality=90&maxHeight=800`;
 }
 
 function getLogoUrl(itemId, logoTag) {
   if (!itemId || !logoTag) return null;
-  return `${JELLYFIN.server}/Items/${itemId}/Images/Logo`
-    + `?api_key=${JELLYFIN.apiKey}&tag=${logoTag}&quality=95&maxHeight=1024`;
+  return `/jellyfin-api/Items/${itemId}/Images/Logo`
+    + `?tag=${logoTag}&quality=95&maxHeight=1024`;
 }

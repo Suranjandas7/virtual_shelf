@@ -54,11 +54,6 @@ function _ensureOutline(dvd) {
   return outline;
 }
 
-function _removeOutline(dvd) {
-  const outline = dvd.children.find((c) => c.userData?.isOutline);
-  if (outline) dvd.remove(outline);
-}
-
 export function dvdBody(dvd) {
   if (dvd.userData?.body) return dvd.userData.body;
   if (dvd.isMesh) return dvd;
@@ -386,7 +381,6 @@ function _releaseTex(tex) {
 }
 
 export function evictDistantTextures() {
-  const L = g.appLayout;
   const totalItems = g.allItems.length;
   if (totalItems === 0) return;
 

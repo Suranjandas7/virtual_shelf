@@ -1,4 +1,3 @@
-/* eslint-env node */
 import { createServer } from 'http';
 import { request as httpRequest } from 'http';
 import { request as httpsRequest } from 'https';
@@ -8,7 +7,7 @@ import { readFile, writeFile, stat } from 'fs/promises';
 import { join, extname, normalize } from 'path';
 import { fileURLToPath } from 'url';
 
-const PORT = 8321;
+const PORT = 5010;
 const ROOT = fileURLToPath(new URL('.', import.meta.url));
 const SHELVES_FILE = join(ROOT, 'shelves.json');
 
@@ -64,6 +63,7 @@ const MIME = {
 };
 
 let opdsAuth = null;
+let jellyfinServer = null;
 
 function md5(str) {
   return crypto.createHash('md5').update(str).digest('hex');
@@ -238,6 +238,12 @@ function serveStatic(req, res) {
   let filePath = join(ROOT, normalize(url.pathname));
   if (filePath.endsWith('/')) filePath = join(filePath, 'index.html');
 
+  if (filePath.endsWith('jellyfin.secret.js')) {
+    res.writeHead(404);
+    res.end('Not found');
+    return;
+  }
+
   if (!filePath.startsWith(ROOT)) {
     res.writeHead(403);
     res.end('Forbidden');
@@ -301,6 +307,42 @@ createServer(async (req, res) => {
       proxyRes.pipe(res);
     });
     proxyReq.on('error', () => {
+      if (!res.headersSent) {
+        res.writeHead(502);
+        res.end('Proxy error');
+      }
+    });
+    proxyReq.end();
+    return;
+  }
+
+  if (url.pathname.startsWith('/jellyfin-api/')) {
+    if (!jellyfinServer) {
+      res.writeHead(503);
+      res.end('Jellyfin not configured');
+      return;
+    }
+    const subPath = url.pathname.slice('/jellyfin-api'.length) + (url.search || '');
+    const target = jellyfinServer.server + subPath;
+    console.log(`[${ts}] ${method} /jellyfin-api → ${target.substring(0, 80)}...`);
+    const proto = target.startsWith('https') ? httpsRequest : httpRequest;
+    const u = new URL(target);
+    const proxyReq = proto.call(null, u, {
+      method,
+      headers: {
+        'Authorization': `MediaBrowser Token="${jellyfinServer.apiKey}"`,
+        'User-Agent': 'virtual-shelf/1.0',
+      },
+    }, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.statusMessage, {
+        'Content-Type': proxyRes.headers['content-type'] || 'application/octet-stream',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': proxyRes.headers['cache-control'] || 'no-cache',
+      });
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', (err) => {
+      console.error(`[jellyfin-api] error for ${target}: ${err.message || '(no message)'}`);
       if (!res.headersSent) {
         res.writeHead(502);
         res.end('Proxy error');
@@ -393,6 +435,13 @@ createServer(async (req, res) => {
       opdsAuth = { username: '', password: '', token: c.auth.token };
     }
   } catch { /* config not available */ }
+  try {
+    const mod = await import(new URL('./jellyfin.secret.js', import.meta.url).href);
+    if (mod.JELLYFIN_SERVER?.server && mod.JELLYFIN_SERVER?.apiKey) {
+      jellyfinServer = mod.JELLYFIN_SERVER;
+    }
+  } catch { /* jellyfin secret not available */ }
   console.log(`Shelf running at http://localhost:${PORT}`);
   if (opdsAuth) console.log('OPDS proxy auth configured (Digest)');
+  if (jellyfinServer) console.log('Jellyfin proxy configured');
 });

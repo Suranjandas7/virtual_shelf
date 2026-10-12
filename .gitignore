@@ -144,3 +144,6 @@ vite.config.ts.timestamp-*
 
 # config file
 shelves.json
+
+# server-side secrets
+jellyfin.secret.js
